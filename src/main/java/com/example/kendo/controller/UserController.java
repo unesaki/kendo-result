@@ -36,6 +36,11 @@ public class UserController {
         userService.login(requestDto);
         return ResponseEntity.ok(new LoginUserResponseDto("ログインに成功しました。"));
     }
+    
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        return ResponseEntity.ok("ログアウトしました。");
+    }
 
 
 }
