@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.kendo.repository.TeamRepository">
+
+    <!-- チームの新規作成 -->
+    <insert id="insert" parameterType="com.example.kendo.entity.TeamEntity">
+        INSERT INTO teams (
+            name,
+            created_at
+        ) VALUES (
+            #{name},
+            #{createdAt}
+        )
+    </insert>
+
+</mapper>
