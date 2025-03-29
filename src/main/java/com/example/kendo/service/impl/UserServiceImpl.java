@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.kendo.dto.LoginUserRequestDto;
 import com.example.kendo.dto.RegisterUserRequestDto;
 import com.example.kendo.entity.UserEntity;
 import com.example.kendo.repository.UserRepository;
@@ -37,5 +38,20 @@ public class UserServiceImpl implements UserService {
 
         // 永続化
         userRepository.insert(entity);
+    }
+    
+    @Override
+    public void login(LoginUserRequestDto requestDto) {
+        // メールでユーザー取得
+        UserEntity user = userRepository.findByEmail(requestDto.getEmail());
+
+        if (user == null) {
+            throw new RuntimeException("該当するユーザーが存在しません。");
+        }
+
+        // パスワード照合（ハッシュ比較）
+        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
+            throw new RuntimeException("パスワードが一致しません。");
+        }
     }
 }

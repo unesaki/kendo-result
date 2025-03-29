@@ -20,4 +20,11 @@ public interface UserRepository {
      * @param entity 登録するユーザー情報
      */
     void insert(UserEntity entity);
+    
+    /**
+     * メールアドレスでユーザーを検索します
+     * @param email メールアドレス
+     * @return 該当ユーザー（なければnull）
+     */
+    UserEntity findByEmail(@Param("email") String email);
 }
