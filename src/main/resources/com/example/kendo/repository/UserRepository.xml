@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.kendo.repository.UserRepository">
+
+    <!-- メールアドレスによるユーザー数のカウント -->
+    <select id="countByEmail" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <!-- ユーザーの新規登録 -->
+    <insert id="insert" parameterType="com.example.kendo.entity.UserEntity">
+        INSERT INTO users (
+            username,
+            email,
+            password,
+            created_at
+        ) VALUES (
+            #{username},
+            #{email},
+            #{password},
+            #{createdAt}
+        )
+    </insert>
+
+</mapper>
