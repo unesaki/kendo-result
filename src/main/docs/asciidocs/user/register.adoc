@@ -1,0 +1,220 @@
+= ユーザー新規登録API 処理詳細設計書
+
+== 対象API
+POST /api/register
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                        | 補足
+
+| DTO  | RegisterUserRequestDto      | ユーザー登録リクエスト用DTO
+| DTO  | RegisterUserResponseDto     | ユーザー登録レスポンスDTO
+| Entity | UsersEntity               | usersテーブルに対応するエンティティ
+|===
+
+=== RegisterUserRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型     | バリデーションルール
+
+| ユーザー名 | username   | String | 必須、1〜50文字
+| メール     | email      | String | 必須、メール形式、最大100文字
+| パスワード | password   | String | 必須、8文字以上、最大100文字
+|===
+
+=== RegisterUserResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型     | バリデーションルール
+
+| ユーザーID | id         | Long   | -
+| ユーザー名 | username   | String | -
+| メール     | email      | String | -
+| 登録日時   | createdAt  | LocalDateTime | -
+|===
+
+=== UsersEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名           | 物理名         | 型              | バリデーションルール
+
+| ユーザーID       | id             | Long            | 自動採番
+| ユーザー名       | username       | String          | 必須、1〜50文字
+| メールアドレス   | email          | String          | 必須、メール形式、最大100文字
+| パスワードハッシュ | passwordHash | String          | 必須（ハッシュ済み）、最大255文字
+| 登録日時         | createdAt      | LocalDateTime   | -
+| 更新日時         | updatedAt      | LocalDateTime   | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                          | エラーメッセージID | HTTPステータス | パラメータ
+
+| ユーザー名が未入力            | E_MSG_0001         | 400             | username
+| ユーザー名が50文字を超える    | E_MSG_1002         | 400             | username, max=50
+| メールが未入力                | E_MSG_0001         | 400             | email
+| メールが100文字を超える       | E_MSG_1002         | 400             | email, max=100
+| メールの形式が不正            | E_MSG_1003         | 400             | email
+| パスワードが未入力            | E_MSG_0001         | 400             | password
+| パスワードが8文字未満         | E_MSG_1001         | 400             | password, min=8
+| パスワードが100文字を超える   | E_MSG_1002         | 400             | password, max=100
+|===
+
+== Controller定義
+
+=== クラス名
+UserController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名     | 型                  | 内容
+
+| userService      | UserService         | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/register")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                       | アノテーション
+
+| RegisterUserRequestDto request  | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名      | 戻り値型                          | パラメータ
+
+| registerUser    | ResponseEntity<RegisterUserResponseDto> | RegisterUserRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | request をそのまま userService#registerUser に渡す。
+| 2 | 戻り値の RegisterUserResponseDto を ResponseEntity に包み、HTTPステータス 201 Created で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | HTTPステータス      | エラーメッセージID | パラメータ
+
+| メールアドレスが既に存在する | 400 Bad Request     | E_MSG_0013         | email
+| リクエスト形式が不正         | 400 Bad Request     | E_MSG_0002         | -
+| 必須項目が不足               | 400 Bad Request     | E_MSG_0001         | field
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+UserService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名       | 型                  | 内容
+
+| userRepository      | UserRepository      | @Autowired により注入
+| passwordEncoder     | PasswordEncoder     | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：registerUser
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名      | 戻り値型                  | パラメータ
+
+| registerUser    | RegisterUserResponseDto  | RegisterUserRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | userRepository#findByEmail を呼び出し、request.email が既に存在するか確認する。存在すれば 400 エラーと `E_MSG_0013` をスローする。
+| 2 | passwordEncoder#encode を使用して、request.password をハッシュ化する。
+| 3 | リクエスト情報とハッシュ済みパスワードから UsersEntity を生成する。
+| 4 | userRepository#save を呼び出し、UsersEntity を DB に保存する。
+| 5 | 登録された UsersEntity を RegisterUserResponseDto に変換し、呼び出し元に返却する。
+| 6 | その他の例外が発生した場合は、500 エラーとメッセージ ID `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+UserRepository（extends JpaRepository<UsersEntity, Long>）
+
+=== メソッド：findByEmail
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名     | パラメータ     | 戻り値型
+
+| findByEmail    | String email   | Optional<UsersEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM users WHERE email = :email;
+----
+
+=== メソッド：save
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ     | 戻り値型
+
+| save       | UsersEntity    | UsersEntity
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+INSERT INTO users (username, email, password_hash, created_at, updated_at)
+VALUES (:username, :email, :passwordHash, :createdAt, :updatedAt);
+----

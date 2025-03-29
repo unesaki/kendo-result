@@ -1,0 +1,185 @@
+= 大会結果詳細取得API 処理詳細設計書
+
+== 対象API
+GET /api/tournaments/{id}
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                            | 補足
+
+| DTO  | GetTournamentDetailResponseDto  | 大会結果詳細レスポンスDTO
+| Entity | TournamentsEntity             | tournaments テーブルに対応するエンティティ
+|===
+
+=== GetTournamentDetailResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型              | バリデーションルール
+
+| 大会ID       | id           | Long            | -
+| 大会名       | name         | String          | -
+| 開催日       | date         | LocalDate       | -
+| 会場         | location     | String          | -
+| 主催者       | organizer    | String          | -
+| 登録日時     | createdAt    | LocalDateTime   | -
+| 更新日時     | updatedAt    | LocalDateTime   | -
+|===
+
+=== TournamentsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型              | バリデーションルール
+
+| 大会ID       | id           | Long            | 自動採番
+| 大会名       | name         | String          | 必須、1〜100文字
+| 開催日       | date         | LocalDate       | 必須
+| 会場         | location     | String          | 任意、最大100文字
+| 主催者       | organizer    | String          | 任意、最大100文字
+| 登録日時     | created_at   | LocalDateTime   | -
+| 更新日時     | updated_at   | LocalDateTime   | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                    | エラーメッセージID | HTTPステータス | パラメータ
+
+| id が未指定・不正       | E_MSG_0001         | 400             | id
+| 対象の大会が存在しない | E_MSG_0003         | 404             | id
+|===
+
+== Controller定義
+
+=== クラス名
+TournamentController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名           | 型                     | 内容
+
+| tournamentService      | TournamentService      | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/tournaments/{id}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ | アノテーション
+
+| Long id   | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名             | 戻り値型                                 | パラメータ
+
+| getTournamentDetail    | ResponseEntity<GetTournamentDetailResponseDto> | Long id
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | id を tournamentService#getTournamentDetail に渡す。
+| 2 | 対応する大会情報を取得し、GetTournamentDetailResponseDto に変換する。
+| 3 | DTO を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
+| 4 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                        | HTTPステータス      | エラーメッセージID | パラメータ
+
+| id に対応する大会が存在しない | 404 Not Found       | E_MSG_0003         | id
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TournamentService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名           | 型                     | 内容
+
+| tournamentRepository   | TournamentRepository   | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：getTournamentDetail
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名           | 戻り値型                             | パラメータ
+
+| getTournamentDetail  | GetTournamentDetailResponseDto       | Long id
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | tournamentRepository#findById を呼び出して、id に一致する TournamentsEntity を取得する。見つからなければ 404 エラー `E_MSG_0003` をスロー。
+| 2 | エンティティを GetTournamentDetailResponseDto に変換する。
+| 3 | 呼び出し元に返却する。
+| 4 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TournamentRepository（extends JpaRepository<TournamentsEntity, Long>）
+
+=== メソッド：findById
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ | 戻り値型
+
+| findById   | Long id     | Optional<TournamentsEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM tournaments WHERE id = :id;
+----

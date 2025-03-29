@@ -1,0 +1,194 @@
+= 大会結果削除API 処理詳細設計書
+
+== 対象API
+DELETE /api/tournaments/{id}
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                      | 補足
+
+| DTO  | DeleteTournamentResponseDto | 大会削除完了レスポンスDTO
+| Entity | TournamentsEntity         | tournaments テーブルに対応するエンティティ
+|===
+
+=== DeleteTournamentResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名   | 物理名   | 型     | バリデーションルール
+
+| メッセージ | message | String | -
+|===
+
+=== TournamentsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名       | 型            | バリデーションルール
+
+| 大会ID         | id           | Long          | 自動採番
+| 大会名         | name         | String        | 必須、1〜100文字
+| 開催日         | date         | LocalDate     | 必須
+| 会場           | location     | String        | 任意、最大100文字
+| 主催者         | organizer    | String        | 任意、最大100文字
+| 登録日時       | created_at   | LocalDateTime | -
+| 更新日時       | updated_at   | LocalDateTime | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                       | エラーメッセージID | HTTPステータス | パラメータ
+
+| id が未指定・不正           | E_MSG_0001         | 400             | id
+| id に対応する大会が存在しない | E_MSG_0003         | 404             | id
+|===
+
+== Controller定義
+
+=== クラス名
+TournamentController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名           | 型                    | 内容
+
+| tournamentService      | TournamentService     | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @DeleteMapping("/tournaments/{id}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ | アノテーション
+
+| Long id   | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | 戻り値型                           | パラメータ
+
+| deleteTournament   | ResponseEntity<DeleteTournamentResponseDto> | Long id
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | id を tournamentService#deleteTournament に渡す。
+| 2 | 削除成功後、メッセージ付きの DeleteTournamentResponseDto を HTTPステータス 200 OK で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                       | HTTPステータス      | エラーメッセージID | パラメータ
+
+| id に対応する大会が存在しない | 404 Not Found       | E_MSG_0003         | id
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TournamentService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名         | 型                     | 内容
+
+| tournamentRepository | TournamentRepository   | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：deleteTournament
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | 戻り値型                       | パラメータ
+
+| deleteTournament   | DeleteTournamentResponseDto   | Long id
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | tournamentRepository#findById を呼び出し、該当の大会を取得する。存在しなければ 404 エラー `E_MSG_0003`。
+| 2 | tournamentRepository#delete を呼び出して該当エンティティを削除する。
+| 3 | "大会を削除しました" というメッセージを含む DeleteTournamentResponseDto を返却する。
+| 4 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TournamentRepository（extends JpaRepository<TournamentsEntity, Long>）
+
+=== メソッド：findById
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ | 戻り値型
+
+| findById   | Long id     | Optional<TournamentsEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM tournaments WHERE id = :id;
+----
+
+=== メソッド：delete
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ         | 戻り値型
+
+| delete     | TournamentsEntity  | void
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+DELETE FROM tournaments WHERE id = :id;
+----

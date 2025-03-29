@@ -1,0 +1,182 @@
+= チーム詳細取得API 処理詳細設計書
+
+== 対象API
+GET /api/teams/{teamId}
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | GetTeamDetailResponseDto  | チーム詳細レスポンスDTO
+| Entity | TeamsEntity             | teamsテーブルに対応するエンティティ
+|===
+
+=== GetTeamDetailResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名     | 型     | バリデーションルール
+
+| チームID     | id         | Long   | -
+| チーム名     | name       | String | -
+| 所属学校     | school     | String | -
+| 作成者ID     | ownerId    | Long   | -
+| 作成日時     | createdAt  | LocalDateTime | -
+| 更新日時     | updatedAt  | LocalDateTime | -
+|===
+
+=== TeamsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名     | 型     | バリデーションルール
+
+| チームID     | id         | Long   | 自動採番
+| チーム名     | name       | String | 必須、1〜50文字
+| 所属学校     | school     | String | 任意、最大100文字
+| 作成者ID     | owner_id   | Long   | 必須
+| 作成日時     | created_at | LocalDateTime | -
+| 更新日時     | updated_at | LocalDateTime | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                     | エラーメッセージID | HTTPステータス | パラメータ
+
+| teamIdが未指定または不正 | E_MSG_0001         | 400             | teamId
+|===
+
+== Controller定義
+
+=== クラス名
+TeamController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名 | 型              | 内容
+
+| teamService  | TeamService     | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/teams/{teamId}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ | アノテーション
+
+| Long teamId | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名       | 戻り値型                              | パラメータ
+
+| getTeamDetail    | ResponseEntity<GetTeamDetailResponseDto> | Long teamId
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamId を teamService#getTeamDetail に渡す。
+| 2 | 取得した GetTeamDetailResponseDto を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | HTTPステータス      | エラーメッセージID | パラメータ
+
+| teamIdが存在しない           | 404 Not Found        | E_MSG_0003         | teamId
+| teamIdが未指定または不正     | 400 Bad Request       | E_MSG_0001         | teamId
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TeamService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名     | 型                  | 内容
+
+| teamRepository    | TeamRepository     | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：getTeamDetail
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名       | 戻り値型                    | パラメータ
+
+| getTeamDetail    | GetTeamDetailResponseDto    | Long teamId
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamRepository#findById を呼び出して該当する TeamsEntity を取得する。存在しない場合は 404 エラーと `E_MSG_0003` をスローする。
+| 2 | TeamsEntity を GetTeamDetailResponseDto に変換する。
+| 3 | 呼び出し元に返却する。
+| 4 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TeamRepository（extends JpaRepository<TeamsEntity, Long>）
+
+=== メソッド：findById
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ | 戻り値型
+
+| findById   | Long id     | Optional<TeamsEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM teams WHERE id = :id;
+----

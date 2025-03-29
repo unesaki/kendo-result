@@ -1,0 +1,198 @@
+= 新規チーム作成API 処理詳細設計書
+
+== 対象API
+POST /api/teams
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                    | 補足
+
+| DTO  | CreateTeamRequestDto     | チーム作成リクエストDTO
+| DTO  | CreateTeamResponseDto    | チーム作成レスポンスDTO
+| Entity | TeamsEntity            | teamsテーブルに対応するエンティティ
+|===
+
+=== CreateTeamRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型     | バリデーションルール
+
+| チーム名   | name       | String | 必須、1〜50文字
+| 所属学校   | school     | String | 任意、最大100文字
+| 作成者ID   | ownerId    | Long   | 必須
+|===
+
+=== CreateTeamResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名     | 型     | バリデーションルール
+
+| チームID     | id         | Long   | -
+| チーム名     | name       | String | -
+| 所属学校     | school     | String | -
+| 作成者ID     | ownerId    | Long   | -
+| 作成日時     | createdAt  | LocalDateTime | -
+|===
+
+=== TeamsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名     | 型     | バリデーションルール
+
+| チームID     | id         | Long   | 自動採番
+| チーム名     | name       | String | 必須、1〜50文字
+| 所属学校     | school     | String | 任意、最大100文字
+| 作成者ID     | owner_id   | Long   | 必須
+| 作成日時     | created_at | LocalDateTime | -
+| 更新日時     | updated_at | LocalDateTime | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                       | エラーメッセージID | HTTPステータス | パラメータ
+
+| チーム名が未入力           | E_MSG_0001         | 400             | name
+| チーム名が50文字を超える   | E_MSG_1002         | 400             | name, max=50
+| 学校名が100文字を超える    | E_MSG_1002         | 400             | school, max=100
+| 作成者IDが未指定           | E_MSG_0001         | 400             | ownerId
+|===
+
+== Controller定義
+
+=== クラス名
+TeamController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名 | 型              | 内容
+
+| teamService  | TeamService     | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/teams")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                  | アノテーション
+
+| CreateTeamRequestDto request | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名     | 戻り値型                         | パラメータ
+
+| createTeam     | ResponseEntity<CreateTeamResponseDto> | CreateTeamRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | request をそのまま teamService#createTeam に渡す。
+| 2 | 戻り値の CreateTeamResponseDto を ResponseEntity に包み、HTTPステータス 201 Created で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                     | HTTPステータス      | エラーメッセージID | パラメータ
+
+| 入力値が不正             | 400 Bad Request     | E_MSG_0002         | -
+| 必須項目が不足           | 400 Bad Request     | E_MSG_0001         | field
+| サーバー内部エラー       | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TeamService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名     | 型                  | 内容
+
+| teamRepository    | TeamRepository     | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：createTeam
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名   | 戻り値型                  | パラメータ
+
+| createTeam   | CreateTeamResponseDto     | CreateTeamRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | request から TeamsEntity を生成し、作成者ID、チーム名、学校名を設定する。
+| 2 | 登録日時を現在時刻で設定する。
+| 3 | teamRepository#save を呼び出してデータベースに保存する。
+| 4 | 保存結果を CreateTeamResponseDto に変換し、呼び出し元に返却する。
+| 5 | その他の例外が発生した場合は、500 エラーとメッセージ ID `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TeamRepository（extends JpaRepository<TeamsEntity, Long>）
+
+=== メソッド：save
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ     | 戻り値型
+
+| save       | TeamsEntity    | TeamsEntity
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+INSERT INTO teams (name, school, owner_id, created_at, updated_at)
+VALUES (:name, :school, :ownerId, :createdAt, :updatedAt);
+----

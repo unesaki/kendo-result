@@ -1,0 +1,201 @@
+= ユーザーログインAPI 処理詳細設計書
+
+== 対象API
+POST /api/login
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | LoginUserRequestDto      | ユーザーログインリクエストDTO
+| DTO  | LoginUserResponseDto     | ログイン成功時のレスポンスDTO（JWT含む）
+| Entity | UsersEntity            | usersテーブルに対応するエンティティ
+|===
+
+=== LoginUserRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型     | バリデーションルール
+
+| メール     | email      | String | 必須、メール形式、最大100文字
+| パスワード | password   | String | 必須、8文字以上、最大100文字
+|===
+
+=== LoginUserResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型     | バリデーションルール
+
+| トークン   | token      | String | -
+| ユーザーID | id         | Long   | -
+| ユーザー名 | username   | String | -
+| メール     | email      | String | -
+|===
+
+=== UsersEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名           | 物理名         | 型              | バリデーションルール
+
+| ユーザーID       | id             | Long            | 自動採番
+| ユーザー名       | username       | String          | 必須、1〜50文字
+| メールアドレス   | email          | String          | 必須、メール形式、最大100文字
+| パスワードハッシュ | passwordHash | String          | 必須（ハッシュ済み）、最大255文字
+| 登録日時         | createdAt      | LocalDateTime   | -
+| 更新日時         | updatedAt      | LocalDateTime   | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                          | エラーメッセージID | HTTPステータス | パラメータ
+
+| メールが未入力                | E_MSG_0001         | 400             | email
+| メールが100文字を超える       | E_MSG_1002         | 400             | email, max=100
+| メールの形式が不正            | E_MSG_1003         | 400             | email
+| パスワードが未入力            | E_MSG_0001         | 400             | password
+| パスワードが8文字未満         | E_MSG_1001         | 400             | password, min=8
+| パスワードが100文字を超える   | E_MSG_1002         | 400             | password, max=100
+|===
+
+== Controller定義
+
+=== クラス名
+UserController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名 | 型             | 内容
+
+| authService  | AuthService    | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/login")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                     | アノテーション
+
+| LoginUserRequestDto request   | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | 戻り値型                         | パラメータ
+
+| loginUser  | ResponseEntity<LoginUserResponseDto> | LoginUserRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | request をそのまま authService#login に渡す。
+| 2 | 戻り値の LoginUserResponseDto を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | HTTPステータス       | エラーメッセージID | パラメータ
+
+| ユーザーが存在しない         | 401 Unauthorized      | E_MSG_0003         | email
+| パスワードが一致しない       | 401 Unauthorized      | E_MSG_0004         | email
+| リクエスト形式が不正         | 400 Bad Request        | E_MSG_0002         | -
+| 必須項目が不足               | 400 Bad Request        | E_MSG_0001         | field
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+AuthService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名     | 型                     | 内容
+
+| userRepository    | UserRepository         | @Autowired により注入
+| passwordEncoder   | PasswordEncoder        | @Autowired により注入
+| jwtProvider       | JwtProvider            | @Autowired により注入（JWT発行ユーティリティ）
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：login
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | 戻り値型             | パラメータ
+
+| login      | LoginUserResponseDto | LoginUserRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | userRepository#findByEmail を呼び出して request.email に一致するユーザーを検索する。存在しない場合は 401 エラーと `E_MSG_0003` をスローする。
+| 2 | passwordEncoder#matches を使用し、入力されたパスワードと DB 上のハッシュ値が一致するか検証する。一致しなければ 401 エラーと `E_MSG_0004` をスローする。
+| 3 | jwtProvider#createToken を使用してユーザーIDとメールを含むJWTを生成する。
+| 4 | UsersEntity と生成トークンから LoginUserResponseDto を生成し、呼び出し元に返却する。
+| 5 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+UserRepository（extends JpaRepository<UsersEntity, Long>）
+
+=== メソッド：findByEmail
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名     | パラメータ     | 戻り値型
+
+| findByEmail    | String email   | Optional<UsersEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM users WHERE email = :email;
+----

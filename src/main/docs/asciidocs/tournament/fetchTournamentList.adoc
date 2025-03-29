@@ -1,0 +1,167 @@
+= 大会結果一覧取得API 処理詳細設計書
+
+== 対象API
+GET /api/tournaments
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                          | 補足
+
+| DTO  | GetTournamentListResponseDto  | 一覧の1件分の大会レスポンスDTO
+| Entity | TournamentsEntity           | tournamentsテーブルに対応するエンティティ
+|===
+
+=== GetTournamentListResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型              | バリデーションルール
+
+| 大会ID       | id           | Long            | -
+| 大会名       | name         | String          | -
+| 開催日       | date         | LocalDate       | -
+| 会場         | location     | String          | -
+| 主催者       | organizer    | String          | -
+| 登録日時     | createdAt    | LocalDateTime   | -
+|===
+
+=== TournamentsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型              | バリデーションルール
+
+| 大会ID       | id           | Long            | 自動採番
+| 大会名       | name         | String          | 必須、1〜100文字
+| 開催日       | date         | LocalDate       | 必須
+| 会場         | location     | String          | 任意、最大100文字
+| 主催者       | organizer    | String          | 任意、最大100文字
+| 登録日時     | created_at   | LocalDateTime   | -
+| 更新日時     | updated_at   | LocalDateTime   | -
+|===
+
+== Controller定義
+
+=== クラス名
+TournamentController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名          | 型                     | 内容
+
+| tournamentService     | TournamentService      | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/tournaments")
+|===
+
+=== パラメータアノテーション一覧
+
+※なし（リクエストボディ・パスパラメータなし）
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名            | 戻り値型                                 | パラメータ
+
+| getTournamentList     | ResponseEntity<List<GetTournamentListResponseDto>> | なし
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | tournamentService#getTournamentList を呼び出す。
+| 2 | 取得した List<GetTournamentListResponseDto> を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                 | HTTPステータス                  | エラーメッセージID | パラメータ
+
+| サーバー内部エラー   | 500 Internal Server Error       | E_MSG_0005         | -
+|===
+
+== Service定義
+
+=== クラス名
+TournamentService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名           | 型                     | 内容
+
+| tournamentRepository   | TournamentRepository   | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：getTournamentList
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名           | 戻り値型                               | パラメータ
+
+| getTournamentList    | List<GetTournamentListResponseDto>     | なし
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | tournamentRepository#findAll を呼び出して、全件の TournamentsEntity を取得する。
+| 2 | 各エンティティを GetTournamentListResponseDto に変換し、リスト化する。
+| 3 | 変換結果を呼び出し元に返却する。
+| 4 | その他の例外が発生した場合は、500 エラー `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TournamentRepository（extends JpaRepository<TournamentsEntity, Long>）
+
+=== メソッド：findAll
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ | 戻り値型
+
+| findAll    | なし       | List<TournamentsEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM tournaments;
+----

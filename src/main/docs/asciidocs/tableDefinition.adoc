@@ -1,0 +1,92 @@
+= テーブル定義書（剣道団体戦スコア管理）
+
+== users（ユーザー）
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名        | 型             | パターン/制約            | NULL可否
+
+| ユーザーID   | id            | BIGINT         | PK, AUTO_INCREMENT       | NO
+| ユーザー名   | username      | VARCHAR(50)    | ユニークでなくても可     | NO
+| メールアドレス | email        | VARCHAR(100)   | UNIQUE, メール形式推奨   | NO
+| パスワード   | password_hash | VARCHAR(255)   | ハッシュ化前提           | NO
+| 登録日時     | created_at    | TIMESTAMP      | 自動設定可能             | NO
+| 更新日時     | updated_at    | TIMESTAMP      | 自動更新可能             | NO
+|===
+
+== teams（チーム）
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型             | パターン/制約        | NULL可否
+
+| チームID   | id         | BIGINT         | PK, AUTO_INCREMENT   | NO
+| チーム名   | name       | VARCHAR(100)   | UNIQUE               | NO
+| 説明       | description| TEXT           |                      | YES
+| 作成日時   | created_at | TIMESTAMP      |                      | NO
+| 更新日時   | updated_at | TIMESTAMP      |                      | NO
+|===
+
+== team_members（チーム所属）
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| 論理名   | 物理名    | 型         | パターン/制約              | NULL可否
+
+| 所属ID   | id        | BIGINT     | PK, AUTO_INCREMENT         | NO
+| ユーザーID | user_id | BIGINT     | FK(users.id)               | NO
+| チームID | team_id  | BIGINT     | FK(teams.id)               | NO
+| 役割     | role      | VARCHAR(20)| 'member' または 'leader'   | NO
+| 参加日時 | joined_at | TIMESTAMP  |                            | NO
+|===
+
+== tournaments（大会）
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| 論理名   | 物理名     | 型             | パターン/制約        | NULL可否
+
+| 大会ID   | id          | BIGINT         | PK, AUTO_INCREMENT   | NO
+| 大会名   | name        | VARCHAR(100)   |                      | NO
+| 開催日   | date        | DATE           |                      | NO
+| 開催場所 | location    | VARCHAR(255)   |                      | YES
+| 作成日時 | created_at  | TIMESTAMP      |                      | NO
+| 更新日時 | updated_at  | TIMESTAMP      |                      | NO
+|===
+
+== team_matches（団体戦）
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名                 | 型         | パターン/制約               | NULL可否
+
+| 団体戦ID       | id                     | BIGINT     | PK, AUTO_INCREMENT          | NO
+| 大会ID         | tournament_id          | BIGINT     | FK(tournaments.id)          | NO
+| 赤チームID     | team_red_id            | BIGINT     | FK(teams.id)                | NO
+| 白チームID     | team_white_id          | BIGINT     | FK(teams.id)                | NO
+| 赤チーム本数   | team_red_total_score   | INT        | 0以上                       | YES
+| 白チーム本数   | team_white_total_score | INT        | 0以上                       | YES
+| 赤チーム勝数   | team_red_win_count     | INT        | 0以上                       | YES
+| 白チーム勝数   | team_white_win_count   | INT        | 0以上                       | YES
+| 勝利チームID   | winner_team_id         | BIGINT     | FK(teams.id)                | YES
+| 作成日時       | created_at             | TIMESTAMP  |                             | NO
+|===
+
+== individual_matches（個人戦）
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| 論理名          | 物理名                  | 型           | パターン/制約                                | NULL可否
+
+| 個人戦ID        | id                      | BIGINT       | PK, AUTO_INCREMENT                           | NO
+| 団体戦ID        | team_match_id           | BIGINT       | FK(team_matches.id)                          | NO
+| ポジション      | position                | ENUM         | '先鋒','次鋒','中堅','副将','大将'           | NO
+| 赤選手ID        | player_red_id           | BIGINT       | FK(users.id)                                 | NO
+| 白選手ID        | player_white_id         | BIGINT       | FK(users.id)                                 | NO
+| 赤の得点技      | player_red_scores       | VARCHAR(20)  | 例: "メコ"                                    | YES
+| 白の得点技      | player_white_scores     | VARCHAR(20)  | 例: "ドメ"                                    | YES
+| 赤の反則数      | player_red_penalties    | INT          | 0〜2                                          | YES
+| 白の反則数      | player_white_penalties  | INT          | 0〜2                                          | YES
+| 試合結果        | result                  | ENUM         | '赤勝ち','白勝ち','引き分け','延長'          | NO
+| 勝ち方          | win_type                | VARCHAR(20)  | '一本勝ち','判定','引き分け' など             | YES
+|===

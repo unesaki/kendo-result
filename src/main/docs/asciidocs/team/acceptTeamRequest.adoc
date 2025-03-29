@@ -1,0 +1,215 @@
+= チーム参加リクエスト承認API 処理詳細設計書
+
+== 対象API
+POST /api/teams/{teamId}/accept
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別    | 名称                         | 補足
+
+| DTO     | AcceptTeamRequestDto         | チーム参加リクエスト承認用リクエストDTO
+| DTO     | AcceptTeamResponseDto        | チーム参加リクエスト承認レスポンスDTO
+| Entity  | TeamJoinRequestsEntity       | team_join_requests テーブルに対応するエンティティ
+|===
+
+=== AcceptTeamRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名    | 型     | バリデーションルール
+
+| ユーザーID | userId    | Long   | 必須
+|===
+
+=== AcceptTeamResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名     | 型              | バリデーションルール
+
+| リクエストID | requestId  | Long            | -
+| ステータス   | status     | String          | 固定値 "APPROVED"
+| 承認日時     | approvedAt | LocalDateTime   | -
+|===
+
+=== TeamJoinRequestsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名         | 型              | バリデーションルール
+
+| リクエストID   | id             | Long            | 自動採番
+| チームID       | team_id        | Long            | 必須
+| ユーザーID     | user_id        | Long            | 必須
+| メッセージ     | message        | String          | 任意、最大200文字
+| ステータス     | status         | String          | 初期状態 "PENDING"、更新後は "APPROVED" または "REJECTED"
+| 受付日時       | created_at     | LocalDateTime   | -
+| 更新日時       | updated_at     | LocalDateTime   | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                   | エラーメッセージID | HTTPステータス | パラメータ
+
+| ユーザーIDが未指定      | E_MSG_0001         | 400             | userId
+|===
+
+== Controller定義
+
+=== クラス名
+TeamController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名  | 型              | 内容
+
+| teamService   | TeamService     | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/teams/{teamId}/accept")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                        | アノテーション
+
+| Long teamId                      | @PathVariable
+| AcceptTeamRequestDto request     | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | 戻り値型                            | パラメータ
+
+| acceptTeamRequest  | ResponseEntity<AcceptTeamResponseDto> | Long teamId, AcceptTeamRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamId と request をそのまま teamService#acceptTeamRequest に渡す。
+| 2 | 戻り値の AcceptTeamResponseDto を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従い適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | HTTPステータス      | エラーメッセージID | パラメータ
+
+| teamId が不正または未指定    | 400 Bad Request     | E_MSG_0001         | teamId
+| 指定された teamId が存在しない | 404 Not Found       | E_MSG_0003         | teamId
+| ユーザーIDが未指定             | 400 Bad Request     | E_MSG_0001         | userId
+| サーバー内部エラー            | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TeamService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名                | 型                           | 内容
+
+| teamJoinRequestRepository   | TeamJoinRequestRepository    | @Autowired により注入
+| teamRepository              | TeamRepository               | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：acceptTeamRequest
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | 戻り値型                   | パラメータ
+
+| acceptTeamRequest  | AcceptTeamResponseDto      | Long teamId, AcceptTeamRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamRepository#existsById を呼び出し、teamId の存在確認を行う。存在しない場合は 404 エラーと `E_MSG_0003` をスローする。
+| 2 | teamJoinRequestRepository#findByTeamIdAndUserId を呼び出し、該当する参加リクエストを取得する。存在しない場合は 404 エラーと `E_MSG_0003` をスローする。
+| 3 | 取得したリクエストの status を "APPROVED" に更新し、更新日時を現在時刻に設定する。
+| 4 | teamJoinRequestRepository#updateStatusByTeamIdAndUserId を呼び出し、更新処理を実施する（または save による更新）。
+| 5 | 更新結果から AcceptTeamResponseDto を生成する。
+| 6 | 呼び出し元に返却する。
+| 7 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TeamJoinRequestRepository（extends JpaRepository<TeamJoinRequestsEntity, Long>）
+
+=== メソッド：findByTeamIdAndUserId
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | パラメータ                 | 戻り値型
+
+| findByTeamIdAndUserId | Long teamId, Long userId  | Optional<TeamJoinRequestsEntity>
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+SELECT * FROM team_join_requests 
+WHERE team_id = :teamId AND user_id = :userId;
+----
+
+=== メソッド：updateStatusByTeamIdAndUserId
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | パラメータ                                           | 戻り値型
+
+| updateStatusByTeamIdAndUserId | Long teamId, Long userId, String status, LocalDateTime approvedAt | Integer (更新件数)
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+UPDATE team_join_requests 
+SET status = :status, updated_at = :approvedAt 
+WHERE team_id = :teamId AND user_id = :userId;
+----

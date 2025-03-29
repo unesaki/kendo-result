@@ -1,0 +1,39 @@
+= API一覧
+
+== ユーザー認証関連
+
+[cols="1,2,3", options="header"]
+|===
+| メソッド | エンドポイント | 説明
+
+| POST | /api/register | 新規ユーザー登録
+| POST | /api/login    | ログイン
+| POST | /api/logout   | ログアウト（トークン無効化）
+|===
+
+== チーム関連
+
+[cols="1,2,3", options="header"]
+|===
+| メソッド | エンドポイント | 説明
+
+| GET  | /api/teams                    | チーム一覧の取得
+| GET  | /api/teams/{teamId}           | チーム詳細の取得
+| POST | /api/teams                    | 新しいチームの作成
+| POST | /api/teams/{teamId}/join      | チームに参加リクエスト送信
+| POST | /api/teams/{teamId}/accept    | チーム参加リクエストの承認
+|===
+
+== 大会結果関連
+
+[cols="1,2,3", options="header"]
+|===
+| メソッド | エンドポイント | 説明
+
+| GET    | /api/tournaments             | 大会結果一覧の取得
+| GET    | /api/tournaments/{id}        | 大会結果の詳細取得
+| POST   | /api/tournaments             | 大会結果の登録
+| PUT    | /api/tournaments/{id}        | 大会結果の編集
+| DELETE | /api/tournaments/{id}        | 大会結果の削除
+| GET    | /api/tournaments/{id}/pdf    | 大会結果のPDF出力
+|===

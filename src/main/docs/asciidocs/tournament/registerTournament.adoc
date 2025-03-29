@@ -1,0 +1,200 @@
+= 大会結果登録API 処理詳細設計書
+
+== 対象API
+POST /api/tournaments
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                        | 補足
+
+| DTO  | RegisterTournamentRequestDto  | 大会結果登録リクエストDTO
+| DTO  | RegisterTournamentResponseDto | 大会結果登録レスポンスDTO
+| Entity | TournamentsEntity           | tournamentsテーブルに対応するエンティティ
+|===
+
+=== RegisterTournamentRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名     | 型     | バリデーションルール
+
+| 大会名         | name       | String | 必須、1〜100文字
+| 開催日         | date       | LocalDate | 必須
+| 会場           | location   | String | 任意、最大100文字
+| 主催者         | organizer  | String | 任意、最大100文字
+|===
+
+=== RegisterTournamentResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名     | 型     | バリデーションルール
+
+| 大会ID         | id         | Long   | -
+| 大会名         | name       | String | -
+| 開催日         | date       | LocalDate | -
+| 登録日時       | createdAt  | LocalDateTime | -
+|===
+
+=== TournamentsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名       | 型            | バリデーションルール
+
+| 大会ID         | id           | Long          | 自動採番
+| 大会名         | name         | String        | 必須、1〜100文字
+| 開催日         | date         | LocalDate     | 必須
+| 会場           | location     | String        | 任意、最大100文字
+| 主催者         | organizer    | String        | 任意、最大100文字
+| 登録日時       | created_at   | LocalDateTime | -
+| 更新日時       | updated_at   | LocalDateTime | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                        | エラーメッセージID | HTTPステータス | パラメータ
+
+| name が未指定               | E_MSG_0001         | 400             | name
+| name が100文字を超過        | E_MSG_1002         | 400             | name, max=100
+| location が100文字を超過    | E_MSG_1002         | 400             | location, max=100
+| organizer が100文字を超過   | E_MSG_1002         | 400             | organizer, max=100
+| date が未指定               | E_MSG_0001         | 400             | date
+|===
+
+== Controller定義
+
+=== クラス名
+TournamentController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名       | 型                     | 内容
+
+| tournamentService  | TournamentService      | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/tournaments")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                         | アノテーション
+
+| RegisterTournamentRequestDto request | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名               | 戻り値型                             | パラメータ
+
+| registerTournament       | ResponseEntity<RegisterTournamentResponseDto> | RegisterTournamentRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | request を tournamentService#registerTournament に渡す。
+| 2 | 登録された RegisterTournamentResponseDto を HTTPステータス 201 Created で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | HTTPステータス       | エラーメッセージID | パラメータ
+
+| 必須項目が不足               | 400 Bad Request      | E_MSG_0001         | field
+| バリデーションエラー         | 400 Bad Request      | E_MSG_1002         | field, max
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TournamentService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名           | 型                     | 内容
+
+| tournamentRepository   | TournamentRepository   | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：registerTournament
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名              | 戻り値型                             | パラメータ
+
+| registerTournament      | RegisterTournamentResponseDto        | RegisterTournamentRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | request の情報から TournamentsEntity を生成する。
+| 2 | 登録日時を現在時刻で設定する。
+| 3 | tournamentRepository#save を呼び出してDBに保存する。
+| 4 | 保存結果を RegisterTournamentResponseDto に変換し、呼び出し元に返却する。
+| 5 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TournamentRepository（extends JpaRepository<TournamentsEntity, Long>）
+
+=== メソッド：save
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ           | 戻り値型
+
+| save       | TournamentsEntity    | TournamentsEntity
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+INSERT INTO tournaments (name, date, location, organizer, created_at, updated_at)
+VALUES (:name, :date, :location, :organizer, :createdAt, :updatedAt);
+----
