@@ -5,7 +5,7 @@
 
 <mapper namespace="com.example.kendo.repository.TeamRepository">
 
-    <!-- チームの新規作成 -->
+    <!-- チーム作成 -->
     <insert id="insert" parameterType="com.example.kendo.entity.TeamEntity">
         INSERT INTO teams (
             name,
@@ -15,5 +15,19 @@
             #{createdAt}
         )
     </insert>
+
+    <!-- チーム一覧取得 -->
+    <select id="findAll" resultType="com.example.kendo.entity.TeamEntity">
+        SELECT id, name, created_at
+        FROM teams
+        ORDER BY created_at DESC
+    </select>
+    
+    <select id="findById" parameterType="long" resultType="com.example.kendo.entity.TeamEntity">
+    SELECT id, name, created_at
+    FROM teams
+    WHERE id = #{id}
+</select>
+
 
 </mapper>

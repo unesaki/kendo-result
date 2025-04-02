@@ -2,11 +2,16 @@ package com.example.kendo.service.impl;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.kendo.dto.CreateTeamRequestDto;
+import com.example.kendo.dto.TeamDetailResponseDto;
+import com.example.kendo.dto.TeamListResponseDto;
 import com.example.kendo.entity.TeamEntity;
 import com.example.kendo.repository.TeamRepository;
 import com.example.kendo.service.TeamService;
@@ -28,4 +33,32 @@ public class TeamServiceImpl implements TeamService {
 
         teamRepository.insert(entity);
     }
+    
+    @Override
+    public List<TeamListResponseDto> getAllTeams() {
+        List<TeamEntity> teamList = teamRepository.findAll();
+        return teamList.stream().map(entity -> {
+            TeamListResponseDto dto = new TeamListResponseDto();
+            dto.setId(entity.getId());
+            dto.setName(entity.getName());
+            dto.setCreatedAt(entity.getCreatedAt());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+    
+    
+    @Override
+    public TeamDetailResponseDto getTeamDetail(Long id) {
+        TeamEntity entity = teamRepository.findById(id);
+        if (entity == null) {
+            throw new NoSuchElementException("指定されたチームが存在しません。");
+        }
+
+        TeamDetailResponseDto dto = new TeamDetailResponseDto();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
+    }
+
 }

@@ -1,5 +1,7 @@
 package com.example.kendo.repository;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 
 import com.example.kendo.entity.TeamEntity;
@@ -12,4 +14,7 @@ public interface TeamRepository {
      * @param entity 登録するチーム情報
      */
     void insert(TeamEntity entity);
+    List<TeamEntity> findAll();
+    TeamEntity findById(Long id);
+
 }

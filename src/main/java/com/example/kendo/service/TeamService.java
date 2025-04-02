@@ -1,6 +1,10 @@
 package com.example.kendo.service;
 
+import java.util.List;
+
 import com.example.kendo.dto.CreateTeamRequestDto;
+import com.example.kendo.dto.TeamDetailResponseDto;
+import com.example.kendo.dto.TeamListResponseDto;
 
 public interface TeamService {
 
@@ -9,5 +13,8 @@ public interface TeamService {
      * @param requestDto 作成リクエスト
      */
     void createTeam(CreateTeamRequestDto requestDto);
+    List<TeamListResponseDto> getAllTeams();
+    TeamDetailResponseDto getTeamDetail(Long id);
+
 }
 
