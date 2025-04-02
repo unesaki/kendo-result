@@ -10,9 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.kendo.dto.CreateTeamRequestDto;
+import com.example.kendo.dto.JoinTeamRequestDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
 import com.example.kendo.dto.TeamListResponseDto;
 import com.example.kendo.entity.TeamEntity;
+import com.example.kendo.entity.TeamMemberEntity;
+import com.example.kendo.repository.TeamMemberRepository;
 import com.example.kendo.repository.TeamRepository;
 import com.example.kendo.service.TeamService;
 
@@ -22,6 +25,9 @@ public class TeamServiceImpl implements TeamService {
     @Autowired
     private TeamRepository teamRepository;
 
+    @Autowired
+    private TeamMemberRepository teamMemberRepository;
+    
     @Override
     public void createTeam(CreateTeamRequestDto requestDto) {
         TeamEntity entity = new TeamEntity();
@@ -59,6 +65,17 @@ public class TeamServiceImpl implements TeamService {
         dto.setName(entity.getName());
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
+    }
+    
+    @Override
+    public void joinTeam(Long teamId, JoinTeamRequestDto requestDto) {
+        TeamMemberEntity entity = new TeamMemberEntity();
+        entity.setTeamId(teamId);
+        entity.setUserId(requestDto.getUserId());
+        entity.setStatus(0);
+        entity.setJoinedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        teamMemberRepository.insertPending(entity);
     }
 
 }

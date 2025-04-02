@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.kendo.dto.CreateTeamRequestDto;
 import com.example.kendo.dto.CreateTeamResponseDto;
+import com.example.kendo.dto.JoinTeamRequestDto;
+import com.example.kendo.dto.JoinTeamResponseDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
 import com.example.kendo.dto.TeamListResponseDto;
 import com.example.kendo.service.TeamService;
@@ -46,5 +48,15 @@ public class TeamController {
         TeamDetailResponseDto dto = teamService.getTeamDetail(teamId);
         return ResponseEntity.ok(dto);
     }
+    
+    @PostMapping("/teams/{teamId}/join")
+    public ResponseEntity<JoinTeamResponseDto> joinTeam(
+            @PathVariable Long teamId,
+            @RequestBody @Valid JoinTeamRequestDto requestDto) {
+        
+        teamService.joinTeam(teamId, requestDto);
+        return ResponseEntity.status(201).body(new JoinTeamResponseDto("参加リクエストを送信しました"));
+    }
+
 
 }
