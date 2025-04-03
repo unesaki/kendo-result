@@ -18,5 +18,14 @@
             #{joinedAt}
         )
     </insert>
+    
+    <update id="updateStatusToApproved">
+    UPDATE team_members
+    SET status = '1'
+    WHERE team_id = #{teamId}
+      AND user_id = #{userId}
+      AND status = '0'
+</update>
+
 
 </mapper>

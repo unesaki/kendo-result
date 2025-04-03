@@ -8,4 +8,6 @@ import com.example.kendo.entity.TeamMemberEntity;
 public interface TeamMemberRepository {
 
     void insertPending(TeamMemberEntity entity);
+    void updateStatusToApproved(Long teamId, Long userId);
+
 }

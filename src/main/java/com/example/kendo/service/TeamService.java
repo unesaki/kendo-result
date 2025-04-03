@@ -2,6 +2,7 @@ package com.example.kendo.service;
 
 import java.util.List;
 
+import com.example.kendo.dto.AcceptTeamRequestDto;
 import com.example.kendo.dto.CreateTeamRequestDto;
 import com.example.kendo.dto.JoinTeamRequestDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
@@ -17,6 +18,7 @@ public interface TeamService {
     List<TeamListResponseDto> getAllTeams();
     TeamDetailResponseDto getTeamDetail(Long id);
     void joinTeam(Long teamId, JoinTeamRequestDto requestDto);
+    void acceptTeamRequest(Long teamId, AcceptTeamRequestDto requestDto);
 
 }
 

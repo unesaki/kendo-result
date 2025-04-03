@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.example.kendo.dto.AcceptTeamRequestDto;
 import com.example.kendo.dto.CreateTeamRequestDto;
 import com.example.kendo.dto.JoinTeamRequestDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
@@ -77,5 +78,11 @@ public class TeamServiceImpl implements TeamService {
 
         teamMemberRepository.insertPending(entity);
     }
+    
+    @Override
+    public void acceptTeamRequest(Long teamId, AcceptTeamRequestDto requestDto) {
+        teamMemberRepository.updateStatusToApproved(teamId, requestDto.getUserId());
+    }
+
 
 }
