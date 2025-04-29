@@ -1,4 +1,4 @@
-= ユーザーログインAPI 処理詳細設計書
+= ログインAPI 処理詳細設計書
 
 == 対象API
 POST /api/login
@@ -9,33 +9,32 @@ POST /api/login
 
 [cols="1,1,2", options="header"]
 |===
-| 種別 | 名称                     | 補足
+| 種別 | 名称                  | 補足
 
-| DTO  | LoginUserRequestDto      | ユーザーログインリクエストDTO
-| DTO  | LoginUserResponseDto     | ログイン成功時のレスポンスDTO（JWT含む）
-| Entity | UsersEntity            | usersテーブルに対応するエンティティ
+| DTO  | LoginRequestDto       | ログインリクエスト用DTO
+| DTO  | LoginResponseDto      | ログインレスポンスDTO
+| Entity | UsersEntity         | usersテーブルに対応するエンティティ
 |===
 
-=== LoginUserRequestDtoのフィールド定義
+=== LoginRequestDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名     | 物理名     | 型     | バリデーションルール
+| 論理名     | 物理名   | 型     | バリデーションルール
 
-| メール     | email      | String | 必須、メール形式、最大100文字
-| パスワード | password   | String | 必須、8文字以上、最大100文字
+| メール     | email    | String | 必須、メール形式、最大100文字
+| パスワード | password | String | 必須、最大100文字
 |===
 
-=== LoginUserResponseDtoのフィールド定義
+=== LoginResponseDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名     | 物理名     | 型     | バリデーションルール
+| 論理名         | 物理名     | 型     | バリデーションルール
 
-| トークン   | token      | String | -
-| ユーザーID | id         | Long   | -
-| ユーザー名 | username   | String | -
-| メール     | email      | String | -
+| ユーザーID     | id         | Long   | -
+| ユーザー名     | username   | String | -
+| トークン       | token      | String | -
 |===
 
 === UsersEntityのフィールド定義
@@ -56,28 +55,27 @@ POST /api/login
 
 [cols="1,1,1,1", options="header"]
 |===
-| 原因                          | エラーメッセージID | HTTPステータス | パラメータ
+| 原因                        | エラーメッセージID     | HTTPステータス | パラメータ
 
-| メールが未入力                | E_MSG_0001         | 400             | email
-| メールが100文字を超える       | E_MSG_1002         | 400             | email, max=100
-| メールの形式が不正            | E_MSG_1003         | 400             | email
-| パスワードが未入力            | E_MSG_0001         | 400             | password
-| パスワードが8文字未満         | E_MSG_1001         | 400             | password, min=8
-| パスワードが100文字を超える   | E_MSG_1002         | 400             | password, max=100
+| メールが未入力              | E_VAL_MSG_0001         | 400             | email
+| メールが100文字を超える     | E_VAL_MSG_0006         | 400             | email, max=100
+| メールの形式が不正          | E_VAL_MSG_0007         | 400             | email
+| パスワードが未入力          | E_VAL_MSG_0001         | 400             | password
+| パスワードが100文字を超える | E_VAL_MSG_0006         | 400             | password, max=100
 |===
 
 == Controller定義
 
 === クラス名
-UserController
+AuthController
 
 === フィールド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| フィールド名 | 型             | 内容
+| フィールド名 | 型            | 内容
 
-| authService  | AuthService    | @Autowired によりDIコンテナからインジェクトされる
+| authService  | AuthService   | @Autowired によりDIコンテナからインジェクトされる
 |===
 
 === アノテーション一覧
@@ -94,18 +92,18 @@ UserController
 
 [cols="1,1", options="header"]
 |===
-| パラメータ                     | アノテーション
+| パラメータ                 | アノテーション
 
-| LoginUserRequestDto request   | @RequestBody
+| LoginRequestDto request    | @RequestBody
 |===
 
 === メソッド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型                         | パラメータ
+| メソッド名 | 戻り値型                    | パラメータ
 
-| loginUser  | ResponseEntity<LoginUserResponseDto> | LoginUserRequestDto request
+| login      | ResponseEntity<LoginResponseDto> | LoginRequestDto request
 |===
 
 === 処理詳細
@@ -115,7 +113,7 @@ UserController
 | 番号 | 処理内容
 
 | 1 | request をそのまま authService#login に渡す。
-| 2 | 戻り値の LoginUserResponseDto を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
+| 2 | 戻り値の LoginResponseDto を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
 | 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
 |===
 
@@ -123,13 +121,11 @@ UserController
 
 [cols="1,1,1,1", options="header"]
 |===
-| 原因                         | HTTPステータス       | エラーメッセージID | パラメータ
+| 原因                       | HTTPステータス            | エラーメッセージID   | パラメータ
 
-| ユーザーが存在しない         | 401 Unauthorized      | E_MSG_0003         | email
-| パスワードが一致しない       | 401 Unauthorized      | E_MSG_0004         | email
-| リクエスト形式が不正         | 400 Bad Request        | E_MSG_0002         | -
-| 必須項目が不足               | 400 Bad Request        | E_MSG_0001         | field
-| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+| 認証失敗（メールアドレスまたはパスワード誤り） | 401 Unauthorized         | E_AUTH_MSG_0001         | email
+| ユーザーが存在しない       | 404 Not Found             | E_DB_MSG_0001           | email
+| サーバー内部エラー         | 500 Internal Server Error | E_SYS_MSG_0002          | -
 |===
 
 == Service定義
@@ -141,11 +137,11 @@ AuthService
 
 [cols="1,1,1", options="header"]
 |===
-| フィールド名     | 型                     | 内容
+| フィールド名     | 型                  | 内容
 
-| userRepository    | UserRepository         | @Autowired により注入
-| passwordEncoder   | PasswordEncoder        | @Autowired により注入
-| jwtProvider       | JwtProvider            | @Autowired により注入（JWT発行ユーティリティ）
+| userRepository    | UserRepository      | @Autowired により注入
+| passwordEncoder   | PasswordEncoder     | パスワード照合に使用
+| jwtTokenProvider  | JwtTokenProvider    | JWT生成用ユーティリティ
 |===
 
 === アノテーション一覧
@@ -161,9 +157,9 @@ AuthService
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型             | パラメータ
+| メソッド名 | 戻り値型            | パラメータ
 
-| login      | LoginUserResponseDto | LoginUserRequestDto request
+| login      | LoginResponseDto    | LoginRequestDto request
 |===
 
 ==== 処理詳細
@@ -172,11 +168,10 @@ AuthService
 |===
 | 番号 | 処理内容
 
-| 1 | userRepository#findByEmail を呼び出して request.email に一致するユーザーを検索する。存在しない場合は 401 エラーと `E_MSG_0003` をスローする。
-| 2 | passwordEncoder#matches を使用し、入力されたパスワードと DB 上のハッシュ値が一致するか検証する。一致しなければ 401 エラーと `E_MSG_0004` をスローする。
-| 3 | jwtProvider#createToken を使用してユーザーIDとメールを含むJWTを生成する。
-| 4 | UsersEntity と生成トークンから LoginUserResponseDto を生成し、呼び出し元に返却する。
-| 5 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+| 1 | userRepository#findByEmail を呼び出し、存在しない場合は `E_DB_MSG_0001` をスローする。
+| 2 | 入力されたパスワードとDBにあるパスワードハッシュを passwordEncoder#matches で照合。合致しない場合は `E_AUTH_MSG_0001` をスローする。
+| 3 | JWTを生成し、LoginResponseDto に詰めて返却する。
+| 4 | その他の例外が発生した場合は、500エラーとメッセージ ID `E_SYS_MSG_0002` を返却する。
 |===
 
 == Repository定義

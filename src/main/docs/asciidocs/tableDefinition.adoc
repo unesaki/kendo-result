@@ -31,14 +31,16 @@
 
 [cols="1,1,1,1,1", options="header"]
 |===
-| 論理名   | 物理名    | 型         | パターン/制約              | NULL可否
+| 論理名   | 物理名    | 型         | パターン/制約                       | NULL可否
 
-| 所属ID   | id        | BIGINT     | PK, AUTO_INCREMENT         | NO
-| ユーザーID | user_id | BIGINT     | FK(users.id)               | NO
-| チームID | team_id  | BIGINT     | FK(teams.id)               | NO
-| 役割     | role      | VARCHAR(20)| 'member' または 'leader'   | NO
-| 参加日時 | joined_at | TIMESTAMP  |                            | NO
+| 所属ID   | id         | BIGINT     | PK, AUTO_INCREMENT                  | NO
+| ユーザーID | user_id  | BIGINT     | FK(users.id)                        | NO
+| チームID | team_id   | BIGINT     | FK(teams.id)                        | NO
+| 役割     | role       | VARCHAR(20)| 'member' または 'leader'            | NO
+| ステータス | status   | INT        | 0:申請中, 1:承認済み, 2:拒否済み    | NO
+| 参加日時 | joined_at  | TIMESTAMP  |                                      | NO
 |===
+
 
 == tournaments（大会）
 

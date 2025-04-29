@@ -1,4 +1,4 @@
-= ユーザーログアウトAPI 処理詳細設計書
+= ログ出力API 処理詳細設計書
 
 == 対象API
 POST /api/logout
@@ -9,64 +9,52 @@ POST /api/logout
 
 [cols="1,1,2", options="header"]
 |===
-| 種別 | 名称                     | 補足
+| 種別 | 名称              | 補足
 
-| DTO  | LogoutUserRequestDto     | ログアウトリクエストDTO（トークン含む）
-| DTO  | LogoutUserResponseDto    | ログアウト完了レスポンスDTO
-| Entity | TokenBlacklistEntity   | 無効化されたトークンを記録するエンティティ
+| DTO  | LogoutRequestDto  | ログアウトリクエスト用DTO（トークンなどを含む場合）
+| DTO  | CommonResponseDto | 汎用レスポンスDTO（成功/失敗メッセージ等）
 |===
 
-=== LogoutUserRequestDtoのフィールド定義
+=== LogoutRequestDtoのフィールド定義（必要に応じて）
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名     | 物理名     | 型     | バリデーションルール
+| 論理名 | 物理名 | 型     | バリデーションルール
 
-| トークン   | token      | String | 必須、非空、最大512文字
+| トークン | token | String | 必須（ヘッダーで受け取る場合は不要）
 |===
 
-=== LogoutUserResponseDtoのフィールド定義
+=== CommonResponseDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名         | 物理名     | 型     | バリデーションルール
+| 論理名     | 物理名   | 型     | バリデーションルール
 
-| メッセージ     | message    | String | -
+| ステータス | status   | String | -
+| メッセージ | message  | String | -
 |===
 
-=== TokenBlacklistEntityのフィールド定義
+==== バリデーションエラーハンドリング定義（必要な場合）
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名           | 物理名     | 型     | バリデーションルール
+| 原因              | エラーメッセージID     | HTTPステータス | パラメータ
 
-| ID               | id         | Long   | 自動採番
-| 無効化トークン   | token      | String | 必須、最大512文字
-| 登録日時         | createdAt  | LocalDateTime | -
-|===
-
-==== バリデーションエラーハンドリング定義
-
-[cols="1,1,1,1", options="header"]
-|===
-| 原因                  | エラーメッセージID | HTTPステータス | パラメータ
-
-| トークンが未指定      | E_MSG_0001         | 400             | token
-| トークンが512文字超過 | E_MSG_1002         | 400             | token, max=512
+| トークンが未指定   | E_VAL_MSG_0001         | 400             | token
 |===
 
 == Controller定義
 
 === クラス名
-UserController
+AuthController
 
 === フィールド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| フィールド名 | 型               | 内容
+| フィールド名 | 型            | 内容
 
-| authService  | AuthService      | @Autowired によりDIコンテナからインジェクトされる
+| authService  | AuthService   | @Autowired によりDIコンテナからインジェクトされる
 |===
 
 === アノテーション一覧
@@ -79,22 +67,22 @@ UserController
 | メソッド | @PostMapping("/logout")
 |===
 
-=== パラメータアノテーション一覧
+=== パラメータアノテーション一覧（リクエストボディがある場合）
 
 [cols="1,1", options="header"]
 |===
-| パラメータ                     | アノテーション
+| パラメータ             | アノテーション
 
-| LogoutUserRequestDto request  | @RequestBody
+| LogoutRequestDto request | @RequestBody
 |===
 
 === メソッド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名   | 戻り値型                         | パラメータ
+| メソッド名 | 戻り値型                  | パラメータ
 
-| logoutUser  | ResponseEntity<LogoutUserResponseDto> | LogoutUserRequestDto request
+| logout     | ResponseEntity<CommonResponseDto> | LogoutRequestDto request（必要に応じて）
 |===
 
 === 処理詳細
@@ -103,8 +91,8 @@ UserController
 |===
 | 番号 | 処理内容
 
-| 1 | request をそのまま authService#logout に渡す。
-| 2 | 処理完了後、メッセージ付きの LogoutUserResponseDto を HTTPステータス 200 OK で返却する。
+| 1 | クライアントから受け取ったトークンを元に、認証情報を無効化する。
+| 2 | 無効化処理後、成功メッセージを含む CommonResponseDto を返却する。
 | 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
 |===
 
@@ -112,11 +100,10 @@ UserController
 
 [cols="1,1,1,1", options="header"]
 |===
-| 原因                  | HTTPステータス      | エラーメッセージID | パラメータ
+| 原因                    | HTTPステータス            | エラーメッセージID   | パラメータ
 
-| トークンが未指定      | 400 Bad Request     | E_MSG_0001         | token
-| トークンが512文字超過 | 400 Bad Request     | E_MSG_1002         | token, max=512
-| サーバー内部エラー    | 500 Internal Server Error | E_MSG_0005     | -
+| トークンが無効または期限切れ | 401 Unauthorized         | E_AUTH_MSG_0003         | token
+| サーバー内部エラー           | 500 Internal Server Error | E_SYS_MSG_0002          | -
 |===
 
 == Service定義
@@ -128,10 +115,9 @@ AuthService
 
 [cols="1,1,1", options="header"]
 |===
-| フィールド名         | 型                       | 内容
+| フィールド名     | 型                  | 内容
 
-| tokenBlacklistRepository | TokenBlacklistRepository | @Autowired により注入
-| jwtProvider             | JwtProvider              | @Autowired により注入
+| tokenBlacklistService | TokenBlacklistService | トークン無効化処理用（任意）
 |===
 
 === アノテーション一覧
@@ -147,9 +133,9 @@ AuthService
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型                 | パラメータ
+| メソッド名 | 戻り値型              | パラメータ
 
-| logout     | LogoutUserResponseDto   | LogoutUserRequestDto request
+| logout     | CommonResponseDto     | LogoutRequestDto request（またはトークン）
 |===
 
 ==== 処理詳細
@@ -158,31 +144,7 @@ AuthService
 |===
 | 番号 | 処理内容
 
-| 1 | request.token のトークンが有効かどうかを jwtProvider で検証する（必要に応じて）。
-| 2 | TokenBlacklistEntity を生成し、request.token を保存対象として設定する。
-| 3 | tokenBlacklistRepository#save を呼び出し、無効化トークンをDBに保存する。
-| 4 | メッセージ `"ログアウトしました"` を含む LogoutUserResponseDto を生成し、呼び出し元に返却する。
-| 5 | その他の例外が発生した場合は、500 エラーとメッセージ ID `E_MSG_0005` を返却する。
+| 1 | トークンが有効かを確認し、ブラックリストに登録するなどの方法で無効化する。
+| 2 | 成功レスポンスを生成して返却する。
+| 3 | 例外が発生した場合は、500エラーと `E_SYS_MSG_0002` を返却する。
 |===
-
-== Repository定義
-
-=== リポジトリ名
-TokenBlacklistRepository（extends JpaRepository<TokenBlacklistEntity, Long>）
-
-=== メソッド：save
-
-[cols="1,1,1", options="header"]
-|===
-| メソッド名 | パラメータ               | 戻り値型
-
-| save       | TokenBlacklistEntity     | TokenBlacklistEntity
-|===
-
-==== クエリ定義
-
-[source,sql]
-----
-INSERT INTO token_blacklist (token, created_at)
-VALUES (:token, :createdAt);
-----
