@@ -1,0 +1,108 @@
+= 団体戦結果一覧取得API 処理詳細設計書
+
+== 対象API
+GET /api/team-matches
+
+== 概要
+全ての団体戦試合結果（ヘッダ情報のみ）を一覧で取得するAPI。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | TeamMatchListDto       | 団体戦試合結果一覧の1件分のDTO
+|===
+
+=== TeamMatchListDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名         | 型             | バリデーションルール
+
+| 団体戦ID     | teamMatchId    | Long           | -
+| 大会ID       | tournamentId    | Long           | -
+| 赤チーム名   | redTeamName     | String         | -
+| 白チーム名   | whiteTeamName   | String         | -
+| 試合日時     | matchDate       | LocalDateTime  | -
+|===
+
+== Controller定義
+
+=== クラス名
+TeamMatchController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/team-matches")
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名           | 戻り値型                             | パラメータ
+
+| getTeamMatchList     | ResponseEntity<List<TeamMatchListDto>> | なし
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | team_matches テーブルから全件取得（order by match_date desc）。
+| 2 | TeamMatchListDto にマッピング。
+| 3 | レスポンスとして返却。
+|===
+
+== Service定義
+
+=== クラス名
+TeamMatchService
+
+=== メソッド：getTeamMatchList
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | 戻り値型                         | パラメータ
+
+| getTeamMatchList   | List<TeamMatchListDto>          | なし
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | team_matches テーブルの全データを取得（降順）。
+| 2 | 各レコードを TeamMatchListDto に詰め替え。
+| 3 | 一覧として返却。
+|===
+
+== Repository定義
+
+=== TeamMatchMapper（MyBatis XML）
+
+[source,sql]
+----
+-- 一覧取得
+SELECT
+  id AS teamMatchId,
+  tournament_id AS tournamentId,
+  red_team_name AS redTeamName,
+  white_team_name AS whiteTeamName,
+  match_date AS matchDate
+FROM team_matches
+ORDER BY match_date DESC;
+----

@@ -1,0 +1,133 @@
+= 団体戦結果詳細取得API 処理詳細設計書
+
+== 対象API
+GET /api/team-matches/{teamMatchId}
+
+== 概要
+指定された団体戦試合結果（ヘッダおよび5件の詳細）を取得するAPI。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                        | 補足
+
+| DTO  | TeamMatchDetailResponseDto | 団体戦試合詳細のレスポンスDTO
+| DTO  | MatchResultDto             | 各ポジションの詳細（5件）
+|===
+
+=== TeamMatchDetailResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名         | 型               | バリデーションルール
+
+| 団体戦ID     | teamMatchId    | Long             | -
+| 大会ID       | tournamentId    | Long             | -
+| 赤チーム名   | redTeamName     | String           | -
+| 白チーム名   | whiteTeamName   | String           | -
+| 試合日時     | matchDate       | LocalDateTime    | -
+| 試合結果一覧 | matches         | List<MatchResultDto> | 常に5件
+|===
+
+=== MatchResultDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名           | 物理名         | 型     | バリデーションルール
+
+| ポジション       | position        | String | 先鋒〜大将のいずれか
+| 赤選手名         | redPlayer       | String | -
+| 白選手名         | whitePlayer     | String | -
+| 試合結果         | result          | String | WIN / LOSE / DRAW
+|===
+
+== Controller定義
+
+=== クラス名
+TeamMatchController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/team-matches/{teamMatchId}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ | アノテーション
+
+| Long teamMatchId | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | 戻り値型 | パラメータ
+
+| getTeamMatchDetail | ResponseEntity<TeamMatchDetailResponseDto> | Long teamMatchId
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | パスパラメータ teamMatchId を検証し、対象レコードをDBから取得。
+| 2 | 該当する team_match（ヘッダ）および team_match_detail（5件）を取得。
+| 3 | DTO にマッピングし、レスポンスとして返却。
+| 4 | 対象が存在しない場合は404エラーを返却。
+|===
+
+== Service定義
+
+=== クラス名
+TeamMatchService
+
+=== メソッド：getTeamMatchDetail
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | 戻り値型                     | パラメータ
+
+| getTeamMatchDetail | TeamMatchDetailResponseDto | Long teamMatchId
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | team_match を teamMatchId で取得。存在しなければ 404。
+| 2 | team_match_detail を teamMatchId で全件取得。
+| 3 | DTO にマッピングし、返却。
+|===
+
+== Repository定義
+
+=== TeamMatchMapper（MyBatis XML）
+
+[source,sql]
+----
+-- ヘッダ取得
+SELECT *
+FROM team_matches
+WHERE id = #{teamMatchId};
+
+-- 明細取得（5件）
+SELECT *
+FROM team_match_detail
+WHERE team_match_id = #{teamMatchId}
+ORDER BY position_order ASC;
+----

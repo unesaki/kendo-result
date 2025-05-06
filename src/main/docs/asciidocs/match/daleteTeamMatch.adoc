@@ -1,0 +1,113 @@
+= 団体戦結果削除API 処理詳細設計書
+
+== 対象API
+DELETE /api/team-matches/{teamMatchId}
+
+== 概要
+指定された団体戦試合結果（ヘッダおよび5件の詳細）を削除するAPI。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                        | 補足
+
+| DTO  | CommonResponseDto           | 共通レスポンスDTO（成功メッセージなど）
+|===
+
+=== CommonResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名   | 型     | バリデーションルール
+
+| ステータス | status   | String | -
+| メッセージ | message  | String | -
+|===
+
+== Controller定義
+
+=== クラス名
+TeamMatchController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @RestController, @RequestMapping("/api")
+| メソッド | @DeleteMapping("/team-matches/{teamMatchId}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ | アノテーション
+
+| Long teamMatchId | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | 戻り値型 | パラメータ
+
+| deleteTeamMatch | ResponseEntity<CommonResponseDto> | Long teamMatchId
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | パスパラメータのバリデーション。不正があれば400エラーを返却。
+| 2 | サービス層にteamMatchIdを渡して削除処理を実行。
+| 3 | 削除成功時は成功メッセージを含むレスポンスDTOを返却。
+| 4 | エラー発生時は適切なステータスとメッセージを返却。
+|===
+
+== Service定義
+
+=== クラス名
+TeamMatchService
+
+=== メソッド：deleteTeamMatch
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | 戻り値型 | パラメータ
+
+| deleteTeamMatch | void | Long teamMatchId
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | 指定IDのteam_matchが存在するかを確認。なければ404。
+| 2 | 対応するteam_match_detail（5件）を削除。
+| 3 | 該当するteam_match（ヘッダ）を削除。
+|===
+
+== Repository定義
+
+=== TeamMatchMapper（MyBatis XML）
+
+[source,sql]
+----
+-- 詳細削除
+DELETE FROM team_match_detail
+WHERE team_match_id = #{teamMatchId};
+
+-- ヘッダ削除
+DELETE FROM team_matches
+WHERE id = #{teamMatchId};
+----
