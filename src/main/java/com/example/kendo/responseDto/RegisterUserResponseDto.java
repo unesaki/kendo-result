@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegisterUserResponseDto {
-    private Long userId;
+    private Long Id;
     private String username;
     private String email;
     private LocalDateTime createdAt;

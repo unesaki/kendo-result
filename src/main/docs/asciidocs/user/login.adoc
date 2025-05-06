@@ -67,7 +67,7 @@ POST /api/login
 == Controller定義
 
 === クラス名
-AuthController
+UserController
 
 === フィールド一覧
 
@@ -75,7 +75,7 @@ AuthController
 |===
 | フィールド名 | 型            | 内容
 
-| authService  | AuthService   | @Autowired によりDIコンテナからインジェクトされる
+| userService  | UserService   | @Autowired によりDIコンテナからインジェクトされる
 |===
 
 === アノテーション一覧
@@ -112,7 +112,7 @@ AuthController
 |===
 | 番号 | 処理内容
 
-| 1 | request をそのまま authService#login に渡す。
+| 1 | request をそのまま userService#login に渡す。
 | 2 | 戻り値の LoginResponseDto を ResponseEntity に包み、HTTPステータス 200 OK で返却する。
 | 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
 |===
@@ -131,7 +131,7 @@ AuthController
 == Service定義
 
 === クラス名
-AuthService
+UserService
 
 === フィールド一覧
 

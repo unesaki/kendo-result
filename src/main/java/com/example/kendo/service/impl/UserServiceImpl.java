@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
 
         // レスポンスDTOに詰め替え
         RegisterUserResponseDto response = new RegisterUserResponseDto();
-        response.setUserId(entity.getId());
+        response.setId(entity.getId());
         response.setUsername(entity.getUsername());
         response.setEmail(entity.getEmail());
         response.setCreatedAt(entity.getCreatedAt());
