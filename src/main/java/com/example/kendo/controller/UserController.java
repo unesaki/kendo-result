@@ -33,11 +33,9 @@ public class UserController {
     }
     
     @PostMapping("/login")
-    public ResponseEntity<LoginUserResponseDto> login(
-            @RequestBody @Valid LoginUserRequestDto requestDto) {
-        
-        userService.login(requestDto);
-        return ResponseEntity.ok(new LoginUserResponseDto("ログインに成功しました。"));
+    public ResponseEntity<LoginUserResponseDto> login(@RequestBody @Valid LoginUserRequestDto requestDto) {
+    	LoginUserResponseDto responseDto = userService.loginUser(requestDto);
+        return ResponseEntity.ok(responseDto);
     }
     
     @PostMapping("/logout")

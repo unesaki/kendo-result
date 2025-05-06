@@ -11,7 +11,9 @@ import com.example.kendo.exception.BusinessException;
 import com.example.kendo.repository.UserRepository;
 import com.example.kendo.requestDto.LoginUserRequestDto;
 import com.example.kendo.requestDto.RegisterUserRequestDto;
+import com.example.kendo.responseDto.LoginUserResponseDto;
 import com.example.kendo.responseDto.RegisterUserResponseDto;
+import com.example.kendo.security.JwtTokenProvider;
 import com.example.kendo.service.UserService;
 
 
@@ -23,6 +25,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     @Override
     public RegisterUserResponseDto registerUser(RegisterUserRequestDto requestDto) {
@@ -45,7 +50,6 @@ public class UserServiceImpl implements UserService {
         // 登録処理
         userRepository.insert(entity);
 
-
         // レスポンスDTOに詰め替え
         RegisterUserResponseDto response = new RegisterUserResponseDto();
         response.setId(entity.getId());
@@ -57,17 +61,27 @@ public class UserServiceImpl implements UserService {
     }
     
     @Override
-    public void loginUser(LoginUserRequestDto requestDto) {
+    public LoginUserResponseDto loginUser(LoginUserRequestDto requestDto) {
         // メールでユーザー取得
         UserEntity user = userRepository.findByEmail(requestDto.getEmail());
 
         if (user == null) {
-            throw new RuntimeException("該当するユーザーが存在しません。");
+            throw new BusinessException("E_DB_MSG_0001", "email");
         }
 
         // パスワード照合（ハッシュ比較）
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("パスワードが一致しません。");
+            throw new BusinessException("E_AUTH_MSG_0001", "email");
         }
+        
+     // 3. JWTトークン生成
+        String token = jwtTokenProvider.generateToken(user);
+
+        // 4. レスポンスDTOに詰めて返却
+        return new LoginUserResponseDto(
+            user.getId(),
+            user.getUsername(),
+            token
+        );
     }
 }
