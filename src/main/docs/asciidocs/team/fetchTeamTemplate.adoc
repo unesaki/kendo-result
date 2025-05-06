@@ -1,0 +1,150 @@
+= チームテンプレート詳細取得API 処理詳細設計書
+
+== 対象API
+GET /api/team-templates/{id}
+
+== 概要
+指定されたIDに対応するチームテンプレートの情報（チーム名および選手構成）を取得する。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | TeamTemplateDetailResponseDto | 詳細取得時のレスポンスDTO
+| DTO  | PlayerDto                      | 選手情報を保持するDTO
+| Entity | TeamTemplateEntity           | チームテンプレート本体情報
+| Entity | TeamTemplatePlayerEntity     | テンプレートに属する選手構成情報
+|===
+
+=== TeamTemplateDetailResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名         | 型                | バリデーションルール
+
+| テンプレートID | teamTemplateId | Long              | -
+| チーム名       | teamName       | String            | -
+| 選手リスト     | players         | List<PlayerDto>   | 常に5件（先鋒〜大将）
+|===
+
+=== PlayerDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型     | バリデーションルール
+
+| ポジション   | position     | String | -
+| 選手名       | playerName   | String | -
+|===
+
+== Controller定義
+
+=== クラス名
+TeamTemplateController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/team-templates/{id}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ       | アノテーション
+
+| Long id          | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名              | 戻り値型                           | パラメータ
+
+| getTeamTemplateDetail   | ResponseEntity<TeamTemplateDetailResponseDto> | Long id
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | id をキーにテンプレート本体情報を取得。
+| 2 | 存在しない場合は 404 エラー（E_DB_MSG_0001）を返却。
+| 3 | チーム名および選手構成（ポジション順）を取得。
+| 4 | TeamTemplateDetailResponseDto にマッピングして返却。
+| 5 | 例外が発生した場合は、500 エラー（E_SYS_MSG_0002）を返す。
+|===
+
+== Service定義
+
+=== クラス名
+TeamTemplateService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名                  | 型                          | 内容
+
+| teamTemplateMapper            | TeamTemplateMapper          | 本体情報取得用
+| teamTemplatePlayerMapper      | TeamTemplatePlayerMapper    | 選手構成取得用
+|===
+
+=== メソッド：getTeamTemplateDetail
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名              | 戻り値型                           | パラメータ
+
+| getTeamTemplateDetail   | TeamTemplateDetailResponseDto     | Long id
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamTemplateMapper#selectById を使用しテンプレート情報を取得。
+| 2 | teamTemplatePlayerMapper#selectByTemplateId を使用し選手一覧を取得。
+| 3 | 両者をマッピングして DTO を生成。
+| 4 | 該当しない場合は E_DB_MSG_0001 をスロー。
+| 5 | 例外発生時は E_SYS_MSG_0002 をスロー。
+|===
+
+== Repository定義
+
+=== TeamTemplateMapper
+（MyBatis Mapper XML: selectById）
+
+==== クエリ定義
+[source,sql]
+----
+SELECT id, name, created_by, created_at
+FROM team_templates
+WHERE id = #{id};
+----
+
+=== TeamTemplatePlayerMapper
+（MyBatis Mapper XML: selectByTemplateId）
+
+==== クエリ定義
+[source,sql]
+----
+SELECT position, player_name
+FROM team_template_players
+WHERE team_template_id = #{templateId}
+ORDER BY FIELD(position, '先鋒', '次鋒', '中堅', '副将', '大将');
+----

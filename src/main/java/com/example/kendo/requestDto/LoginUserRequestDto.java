@@ -1,4 +1,4 @@
-package com.example.kendo.dto;
+package com.example.kendo.requestDto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

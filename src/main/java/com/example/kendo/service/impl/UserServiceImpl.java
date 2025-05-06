@@ -6,10 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.example.kendo.dto.LoginUserRequestDto;
-import com.example.kendo.dto.RegisterUserRequestDto;
 import com.example.kendo.entity.UserEntity;
+import com.example.kendo.exception.BusinessException;
 import com.example.kendo.repository.UserRepository;
+import com.example.kendo.requestDto.LoginUserRequestDto;
+import com.example.kendo.requestDto.RegisterUserRequestDto;
+import com.example.kendo.responseDto.RegisterUserResponseDto;
 import com.example.kendo.service.UserService;
 
 
@@ -23,25 +25,39 @@ public class UserServiceImpl implements UserService {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Override
-    public void register(RegisterUserRequestDto requestDto) {
+    public RegisterUserResponseDto registerUser(RegisterUserRequestDto requestDto) {
         // メールアドレスの重複チェック
         if (userRepository.countByEmail(requestDto.getEmail()) > 0) {
-            throw new IllegalArgumentException("メールアドレスは既に使用されています。");
+            throw new BusinessException("E_DB_MSG_0004", "email");
         }
+        
+        // パスワードのハッシュ化
+        String hashedPassword = passwordEncoder.encode(requestDto.getPassword());
 
         // UserEntityへの詰め替え
         UserEntity entity = new UserEntity();
         entity.setUsername(requestDto.getUsername());
         entity.setEmail(requestDto.getEmail());
-        entity.setPassword(passwordEncoder.encode(requestDto.getPassword()));
+        entity.setPassword(hashedPassword);
         entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
 
-        // 永続化
+        // 登録処理
         userRepository.insert(entity);
+
+
+        // レスポンスDTOに詰め替え
+        RegisterUserResponseDto response = new RegisterUserResponseDto();
+        response.setUserId(entity.getId());
+        response.setUsername(entity.getUsername());
+        response.setEmail(entity.getEmail());
+        response.setCreatedAt(entity.getCreatedAt());
+
+        return response;
     }
     
     @Override
-    public void login(LoginUserRequestDto requestDto) {
+    public void loginUser(LoginUserRequestDto requestDto) {
         // メールでユーザー取得
         UserEntity user = userRepository.findByEmail(requestDto.getEmail());
 

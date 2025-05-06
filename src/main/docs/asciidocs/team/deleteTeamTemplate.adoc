@@ -1,0 +1,122 @@
+= チームテンプレート削除API 処理詳細設計書
+
+== 対象API
+DELETE /api/team-templates/{id}
+
+== 概要
+指定したIDのチームテンプレート情報を削除する。
+該当テンプレートが存在しない場合は404エラーとする。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                 | 補足
+
+| DTO  | CommonResponseDto     | 結果レスポンスDTO
+|===
+
+=== CommonResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名   | 物理名   | 型     | バリデーションルール
+
+| ステータス | status | String | -
+| メッセージ | message | String | -
+|===
+
+== Controller定義
+
+=== クラス名
+TeamTemplateController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @DeleteMapping("/team-templates/{id}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ | アノテーション
+
+| Long id    | @PathVariable
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名          | 戻り値型                   | パラメータ
+
+| deleteTeamTemplate  | ResponseEntity<CommonResponseDto> | Long id
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | IDに該当するテンプレートが存在するか確認。
+| 2 | 存在しない場合は404エラー（E_DB_MSG_0001）を返す。
+| 3 | 存在すれば削除処理を実行。
+| 4 | 削除成功メッセージを返却。
+| 5 | 例外が発生した場合は500エラー（E_SYS_MSG_0002）を返す。
+|===
+
+== Service定義
+
+=== クラス名
+TeamTemplateService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名         | 型                  | 内容
+
+| teamTemplateMapper    | TeamTemplateMapper  | 削除処理用マッパー
+|===
+
+=== メソッド：deleteTeamTemplate
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名           | 戻り値型 | パラメータ
+
+| deleteTeamTemplate   | void     | Long id
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | ID指定でテンプレート存在チェック。存在しなければE_DB_MSG_0001をスロー。
+| 2 | 存在すれば削除実行。
+| 3 | 正常終了。
+| 4 | 例外時はE_SYS_MSG_0002をスロー。
+|===
+
+== Repository定義
+
+=== TeamTemplateMapper
+（MyBatis Mapper XML: deleteTeamTemplateById）
+
+==== クエリ定義
+[source,sql]
+----
+DELETE FROM team_templates
+WHERE id = #{id};
+----

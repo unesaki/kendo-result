@@ -13,19 +13,25 @@
     </select>
 
     <!-- ユーザーの新規登録 -->
-    <insert id="insert" parameterType="com.example.kendo.entity.UserEntity">
+    <insert id="insert" parameterType="com.example.kendo.entity.UserEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
             username,
             email,
             password,
-            created_at
+            created_at,
+            updated_at
         ) VALUES (
             #{username},
             #{email},
             #{password},
-            #{createdAt}
+            #{createdAt},
+            #{updatedAt}
         )
     </insert>
+    
+    <select id="selectLastInsertId" resultType="long">
+    SELECT LAST_INSERT_ID()
+</select>
     
     <select id="findByEmail" parameterType="string" resultType="com.example.kendo.entity.UserEntity">
     SELECT
@@ -33,7 +39,8 @@
         username,
         email,
         password,
-        created_at
+        created_at,
+        updated_at
     FROM users
     WHERE email = #{email}
 </select>

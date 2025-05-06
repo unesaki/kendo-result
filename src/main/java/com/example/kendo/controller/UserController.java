@@ -10,9 +10,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.kendo.dto.LoginUserRequestDto;
-import com.example.kendo.dto.LoginUserResponseDto;
-import com.example.kendo.dto.RegisterUserRequestDto;
+import com.example.kendo.requestDto.LoginUserRequestDto;
+import com.example.kendo.requestDto.RegisterUserRequestDto;
+import com.example.kendo.responseDto.LoginUserResponseDto;
+import com.example.kendo.responseDto.RegisterUserResponseDto;
 import com.example.kendo.service.UserService;
 
 
@@ -26,9 +27,9 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody @Valid RegisterUserRequestDto requestDto) {
-        userService.register(requestDto);
-        return ResponseEntity.status(201).body("ユーザー登録が完了しました。");
+    public ResponseEntity<RegisterUserResponseDto> register(@RequestBody @Valid RegisterUserRequestDto requestDto) {
+        RegisterUserResponseDto responseDto = userService.registerUser(requestDto);
+        return ResponseEntity.status(201).body(responseDto);
     }
     
     @PostMapping("/login")

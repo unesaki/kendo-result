@@ -1,0 +1,173 @@
+= 試合結果登録API 処理詳細設計書
+
+== 対象API
+POST /api/team-matches
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | RegisterTeamMatchRequestDto | 団体戦の試合結果登録用DTO
+| DTO  | CommonResponseDto           | 成功/失敗メッセージ用DTO
+| Entity | TeamMatchEntity           | 団体戦（赤チーム vs 白チーム）情報
+| Entity | IndividualMatchEntity     | 各ポジションごとの個人戦結果
+|===
+
+=== RegisterTeamMatchRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名        | 物理名         | 型       | バリデーションルール
+
+| 大会ID        | tournamentId   | Long     | 必須
+| ラウンド      | round          | String   | 必須、最大20文字
+| 赤チームID    | redTeamId      | Long     | 任意（手入力時はnull）
+| 赤チーム名    | redTeamName    | String   | 必須、最大50文字
+| 白チームID    | whiteTeamId    | Long     | 任意（手入力時はnull）
+| 白チーム名    | whiteTeamName  | String   | 必須、最大50文字
+| 試合情報リスト | matches        | List<MatchDto> | 必須、5件想定
+|===
+
+=== MatchDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名         | 型     | バリデーションルール
+
+| ポジション     | position       | String | 必須、列挙（先鋒〜大将）
+| 赤選手名       | redPlayerName  | String | 必須、最大50文字
+| 白選手名       | whitePlayerName| String | 必須、最大50文字
+| 赤ポイント     | redPoints      | int    | 必須、0〜3
+| 白ポイント     | whitePoints    | int    | 必須、0〜3
+| 勝敗結果       | result         | String | 必須、列挙（赤勝ち、白勝ち、引き分け）
+|===
+
+=== CommonResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名   | 型     | バリデーションルール
+
+| ステータス | status   | String | -
+| メッセージ | message  | String | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                        | エラーメッセージID     | HTTPステータス | パラメータ
+
+| 大会IDが未指定              | E_VAL_MSG_0001         | 400             | tournamentId
+| ラウンドが未入力            | E_VAL_MSG_0001         | 400             | round
+| 赤チーム名が未入力          | E_VAL_MSG_0001         | 400             | redTeamName
+| 白チーム名が未入力          | E_VAL_MSG_0001         | 400             | whiteTeamName
+| ポジションが未指定          | E_VAL_MSG_0001         | 400             | matches.position
+| 赤選手名が未入力            | E_VAL_MSG_0001         | 400             | matches.redPlayerName
+| 白選手名が未入力            | E_VAL_MSG_0001         | 400             | matches.whitePlayerName
+| ポイントが0〜3の範囲外      | E_VAL_MSG_0005 / 0006  | 400             | matches.redPoints, matches.whitePoints
+| 勝敗結果が不正              | E_VAL_MSG_0003         | 400             | matches.result
+|===
+
+== Controller定義
+
+=== クラス名
+TeamMatchController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名     | 型                      | 内容
+
+| teamMatchService | TeamMatchService        | 試合登録処理を行うサービスクラス
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/team-matches")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                             | アノテーション
+
+| RegisterTeamMatchRequestDto requestDto | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名        | 戻り値型                       | パラメータ
+
+| registerTeamMatch | ResponseEntity<CommonResponseDto> | RegisterTeamMatchRequestDto requestDto
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | リクエスト情報をバリデーションし、不正な場合は 400 エラーとエラーコードを返却する。
+| 2 | 団体戦情報（TeamMatchEntity）を作成・保存する。
+| 3 | 個人戦情報（IndividualMatchEntity）を5件分作成・保存する。
+| 4 | 登録完了後、成功レスポンスを返却する。
+| 5 | 処理中に例外が発生した場合は、500エラーと `E_SYS_MSG_0002` を返却する。
+|===
+
+== Service定義
+
+=== クラス名
+TeamMatchService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名          | 型                       | 内容
+
+| teamMatchRepository    | TeamMatchRepository      | 団体戦用Repository
+| individualMatchRepository | IndividualMatchRepository | 個人戦用Repository
+|===
+
+=== メソッド：registerTeamMatch
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名        | 戻り値型              | パラメータ
+
+| registerTeamMatch | void                  | RegisterTeamMatchRequestDto requestDto
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | requestDto から TeamMatchEntity を生成し保存。
+| 2 | requestDto.matches をループし、IndividualMatchEntity を生成・保存。
+| 3 | 保存処理が全て完了したら正常終了とする。
+| 4 | 例外が発生した場合は、上位に例外をスローする。
+|===
+
+== Repository定義
+
+=== TeamMatchRepository
+（extends JpaRepository<TeamMatchEntity, Long>）
+
+=== IndividualMatchRepository
+（extends JpaRepository<IndividualMatchEntity, Long>）

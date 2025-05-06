@@ -9,15 +9,15 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.example.kendo.dto.AcceptTeamRequestDto;
-import com.example.kendo.dto.CreateTeamRequestDto;
-import com.example.kendo.dto.JoinTeamRequestDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
 import com.example.kendo.dto.TeamListResponseDto;
 import com.example.kendo.entity.TeamEntity;
 import com.example.kendo.entity.TeamMemberEntity;
 import com.example.kendo.repository.TeamMemberRepository;
 import com.example.kendo.repository.TeamRepository;
+import com.example.kendo.requestDto.AcceptTeamRequestDto;
+import com.example.kendo.requestDto.CreateTeamRequestDto;
+import com.example.kendo.requestDto.JoinTeamRequestDto;
 import com.example.kendo.service.TeamService;
 
 @Service

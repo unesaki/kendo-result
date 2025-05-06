@@ -1,10 +1,10 @@
-package com.example.kendo.dto;
+package com.example.kendo.responseDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class JoinTeamResponseDto {
+public class CreateTeamResponseDto {
     private String message;
 }

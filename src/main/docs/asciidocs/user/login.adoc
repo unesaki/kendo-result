@@ -22,8 +22,8 @@ POST /api/login
 |===
 | 論理名     | 物理名   | 型     | バリデーションルール
 
-| メール     | email    | String | 必須、メール形式、最大100文字
-| パスワード | password | String | 必須、最大100文字
+| メール     | email    | String | 必須（@NotBlank）、メール形式（@Email）、最大100文字（@Size(max=100)）
+| パスワード | password | String | 必須（@NotBlank）、最大100文字（@Size(max=100)）
 |===
 
 === LoginResponseDtoのフィールド定義
@@ -44,9 +44,9 @@ POST /api/login
 | 論理名           | 物理名         | 型              | バリデーションルール
 
 | ユーザーID       | id             | Long            | 自動採番
-| ユーザー名       | username       | String          | 必須、1〜50文字
-| メールアドレス   | email          | String          | 必須、メール形式、最大100文字
-| パスワードハッシュ | passwordHash | String          | 必須（ハッシュ済み）、最大255文字
+| ユーザー名       | username       | String          | -
+| メールアドレス   | email          | String          | -
+| パスワードハッシュ | passwordHash  | String          | -
 | 登録日時         | createdAt      | LocalDateTime   | -
 | 更新日時         | updatedAt      | LocalDateTime   | -
 |===
@@ -94,7 +94,7 @@ AuthController
 |===
 | パラメータ                 | アノテーション
 
-| LoginRequestDto request    | @RequestBody
+| LoginRequestDto request    | @RequestBody, @Valid
 |===
 
 === メソッド一覧
@@ -177,7 +177,7 @@ AuthService
 == Repository定義
 
 === リポジトリ名
-UserRepository（extends JpaRepository<UsersEntity, Long>）
+UserRepository（MyBatis Mapper）
 
 === メソッド：findByEmail
 
@@ -185,12 +185,12 @@ UserRepository（extends JpaRepository<UsersEntity, Long>）
 |===
 | メソッド名     | パラメータ     | 戻り値型
 
-| findByEmail    | String email   | Optional<UsersEntity>
+| findByEmail    | String email   | UserEntity
 |===
 
 ==== クエリ定義
 
 [source,sql]
 ----
-SELECT * FROM users WHERE email = :email;
+SELECT * FROM users WHERE email = #{email};
 ----

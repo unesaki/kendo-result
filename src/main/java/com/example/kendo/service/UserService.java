@@ -1,9 +1,10 @@
 package com.example.kendo.service;
 
-import com.example.kendo.dto.LoginUserRequestDto;
-import com.example.kendo.dto.RegisterUserRequestDto;
+import com.example.kendo.requestDto.LoginUserRequestDto;
+import com.example.kendo.requestDto.RegisterUserRequestDto;
+import com.example.kendo.responseDto.RegisterUserResponseDto;
 
 public interface UserService {
-	void register(RegisterUserRequestDto requestDto);
-	void login(LoginUserRequestDto requestDto);
+	RegisterUserResponseDto registerUser(RegisterUserRequestDto requestDto);
+	void loginUser(LoginUserRequestDto requestDto);
 }

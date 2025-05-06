@@ -1,0 +1,156 @@
+= チームテンプレート更新API 処理詳細設計書
+
+== 対象API
+PUT /api/team-templates/{id}
+
+== 概要
+指定したIDのチームテンプレート情報（チーム名＋選手構成）を更新する。
+チーム名は必須、選手名は空文字可。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                        | 補足
+
+| DTO  | UpdateTeamTemplateRequestDto | 更新リクエスト用DTO
+| DTO  | CommonResponseDto             | 結果レスポンスDTO
+| Entity | TeamTemplateEntity          | チームテンプレート情報（更新対象）
+|===
+
+=== UpdateTeamTemplateRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名   | 物理名   | 型     | バリデーションルール
+
+| チーム名 | teamName | String | 必須、最大50文字
+| 先鋒     | senpo    | String | 最大50文字（空文字可）
+| 次鋒     | jiho     | String | 最大50文字（空文字可）
+| 中堅     | chuken   | String | 最大50文字（空文字可）
+| 副将     | fukusho  | String | 最大50文字（空文字可）
+| 大将     | taisho   | String | 最大50文字（空文字可）
+|===
+
+=== CommonResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名   | 物理名   | 型     | バリデーションルール
+
+| ステータス | status | String | -
+| メッセージ | message | String | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                      | エラーメッセージID     | HTTPステータス | パラメータ
+
+| チーム名が未入力          | E_VAL_MSG_0001         | 400             | teamName
+| チーム名が50文字を超える  | E_VAL_MSG_0006         | 400             | teamName
+| 選手名が50文字を超える    | E_VAL_MSG_0006         | 400             | senpo, jiho, chuken, fukusho, taisho
+|===
+
+== Controller定義
+
+=== クラス名
+TeamTemplateController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PutMapping("/team-templates/{id}")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                             | アノテーション
+
+| Long id                                | @PathVariable
+| UpdateTeamTemplateRequestDto request   | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名        | 戻り値型                     | パラメータ
+
+| updateTeamTemplate | ResponseEntity<CommonResponseDto> | Long id, UpdateTeamTemplateRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | リクエストをバリデーション。不正があれば400エラー返却。
+| 2 | 指定IDのテンプレートが存在するか確認。存在しなければ404を返す。
+| 3 | TeamTemplateEntity にマッピングし、更新処理を実行。
+| 4 | 成功レスポンス（200）を返却。
+| 5 | 例外発生時は500エラー（E_SYS_MSG_0002）を返す。
+|===
+
+== Service定義
+
+=== クラス名
+TeamTemplateService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名         | 型                  | 内容
+
+| teamTemplateMapper    | TeamTemplateMapper  | 更新処理用マッパー
+|===
+
+=== メソッド：updateTeamTemplate
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名            | 戻り値型              | パラメータ
+
+| updateTeamTemplate    | void                  | Long id, UpdateTeamTemplateRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | idを元にテンプレートの存在確認。なければE_DB_MSG_0001をスロー。
+| 2 | DTOからEntityに変換し、update実行。
+| 3 | 正常終了。
+| 4 | 例外時はE_SYS_MSG_0002をスロー。
+|===
+
+== Repository定義
+
+=== TeamTemplateMapper
+（MyBatis Mapper XML: updateTeamTemplate）
+
+==== クエリ定義
+[source,sql]
+----
+UPDATE team_templates
+SET name = #{teamName},
+    senpo = #{senpo},
+    jiho = #{jiho},
+    chuken = #{chuken},
+    fukusho = #{fukusho},
+    taisho = #{taisho}
+WHERE id = #{id};
+----

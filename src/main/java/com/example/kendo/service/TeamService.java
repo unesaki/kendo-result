@@ -2,11 +2,11 @@ package com.example.kendo.service;
 
 import java.util.List;
 
-import com.example.kendo.dto.AcceptTeamRequestDto;
-import com.example.kendo.dto.CreateTeamRequestDto;
-import com.example.kendo.dto.JoinTeamRequestDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
 import com.example.kendo.dto.TeamListResponseDto;
+import com.example.kendo.requestDto.AcceptTeamRequestDto;
+import com.example.kendo.requestDto.CreateTeamRequestDto;
+import com.example.kendo.requestDto.JoinTeamRequestDto;
 
 public interface TeamService {
 

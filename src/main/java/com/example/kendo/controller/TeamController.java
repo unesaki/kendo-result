@@ -13,14 +13,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.kendo.dto.AcceptTeamRequestDto;
-import com.example.kendo.dto.AcceptTeamResponseDto;
-import com.example.kendo.dto.CreateTeamRequestDto;
-import com.example.kendo.dto.CreateTeamResponseDto;
-import com.example.kendo.dto.JoinTeamRequestDto;
-import com.example.kendo.dto.JoinTeamResponseDto;
 import com.example.kendo.dto.TeamDetailResponseDto;
 import com.example.kendo.dto.TeamListResponseDto;
+import com.example.kendo.requestDto.AcceptTeamRequestDto;
+import com.example.kendo.requestDto.CreateTeamRequestDto;
+import com.example.kendo.requestDto.JoinTeamRequestDto;
+import com.example.kendo.responseDto.AcceptTeamResponseDto;
+import com.example.kendo.responseDto.CreateTeamResponseDto;
+import com.example.kendo.responseDto.JoinTeamResponseDto;
 import com.example.kendo.service.TeamService;
 
 @RestController

@@ -1,0 +1,171 @@
+= チームテンプレート作成API 処理詳細設計書
+
+== 対象API
+POST /api/team-templates
+
+== 概要
+団体戦に使用するチームテンプレート（チーム名＋選手構成）を新規作成する。
+チーム名は必須だが、選手名は未入力（空文字）でも可とする。
+選手構成は先鋒〜大将の5名分を、1テーブルに固定列として保持する。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | CreateTeamTemplateRequestDto | チームテンプレート作成リクエスト用DTO
+| DTO  | CreateTeamTemplateResponseDto | 作成成功時のレスポンスDTO
+| Entity | TeamTemplateEntity        | チームテンプレート情報（選手情報を含む）
+|===
+
+=== CreateTeamTemplateRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型     | バリデーションルール
+
+| チーム名     | teamName     | String | 必須、最大50文字
+| 先鋒         | senpo        | String | 最大50文字（空文字可）
+| 次鋒         | jiho         | String | 最大50文字（空文字可）
+| 中堅         | chuken       | String | 最大50文字（空文字可）
+| 副将         | fukusho      | String | 最大50文字（空文字可）
+| 大将         | taisho       | String | 最大50文字（空文字可）
+|===
+
+=== CreateTeamTemplateResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型     | バリデーションルール
+
+| チームテンプレートID | teamTemplateId | Long   | 自動採番
+|===
+
+=== TeamTemplateEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名       | 物理名       | 型     | バリデーションルール
+
+| ID           | id           | Long   | PK, AUTO_INCREMENT
+| チーム名     | name         | String | NOT NULL, 最大50文字
+| 先鋒         | senpo        | String | 最大50文字（NULL不可、空文字OK）
+| 次鋒         | jiho         | String | 最大50文字（NULL不可、空文字OK）
+| 中堅         | chuken       | String | 最大50文字（NULL不可、空文字OK）
+| 副将         | fukusho      | String | 最大50文字（NULL不可、空文字OK）
+| 大将         | taisho       | String | 最大50文字（NULL不可、空文字OK）
+| 作成者ID     | created_by   | Long   | FK(users.id)
+| 登録日時     | created_at   | Timestamp | 自動設定
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                        | エラーメッセージID     | HTTPステータス | パラメータ
+
+| チーム名が未入力            | E_VAL_MSG_0001         | 400             | teamName
+| チーム名が50文字を超える    | E_VAL_MSG_0006         | 400             | teamName, max=50
+| 選手名が50文字を超える      | E_VAL_MSG_0006         | 400             | senpo, jiho, chuken, fukusho, taisho
+|===
+
+== Controller定義
+
+=== クラス名
+TeamTemplateController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/team-templates")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ                           | アノテーション
+
+| CreateTeamTemplateRequestDto request | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名         | 戻り値型                             | パラメータ
+
+| createTeamTemplate | ResponseEntity<CreateTeamTemplateResponseDto> | CreateTeamTemplateRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | バリデーションを実行。不正があれば400エラーを返却。
+| 2 | サービス層にリクエストDTOを渡して処理を委譲。
+| 3 | 戻り値として作成されたテンプレートIDをレスポンスDTOに詰めて返却。
+| 4 | 例外が発生した場合は500エラーを返却（E_SYS_MSG_0002）。
+|===
+
+== Service定義
+
+=== クラス名
+TeamTemplateService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名         | 型                  | 内容
+
+| teamTemplateMapper    | TeamTemplateMapper  | チームテンプレート登録用マッパー
+|===
+
+=== メソッド：createTeamTemplate
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名           | 戻り値型                 | パラメータ
+
+| createTeamTemplate   | Long                     | CreateTeamTemplateRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | リクエストDTOからエンティティに変換。
+| 2 | teamTemplateMapper#insertTeamTemplate を実行。
+| 3 | teamTemplateMapper#selectLastInsertId を実行し、登録IDを取得。
+| 4 | 登録IDを戻り値として返却。
+| 5 | 例外が発生した場合はE_SYS_MSG_0002をスロー。
+|===
+
+== Repository定義
+
+=== TeamTemplateMapper
+（MyBatis Mapper XML: insertTeamTemplate, selectLastInsertId）
+
+==== クエリ定義
+[source,sql]
+----
+INSERT INTO team_templates (
+  name, senpo, jiho, chuken, fukusho, taisho, created_by, created_at
+) VALUES (
+  #{name}, #{senpo}, #{jiho}, #{chuken}, #{fukusho}, #{taisho}, #{createdBy}, NOW()
+);
+
+SELECT LAST_INSERT_ID();
+----

@@ -1,4 +1,4 @@
-package com.example.kendo.dto;
+package com.example.kendo.responseDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

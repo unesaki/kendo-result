@@ -45,10 +45,10 @@ POST /api/register
 |===
 | 論理名           | 物理名         | 型              | バリデーションルール
 
-| ユーザーID       | id             | Long            | 自動採番
-| ユーザー名       | username       | String          | 必須、1〜50文字
-| メールアドレス   | email          | String          | 必須、メール形式、最大100文字
-| パスワードハッシュ | passwordHash | String          | 必須（ハッシュ済み）、最大255文字
+| ユーザーID | id | Long | PK, AUTO_INCREMENT
+| ユーザー名 | username | String | NOT NULL
+| メール     | email    | String | NOT NULL, UNIQUE
+| パスワード | password | String | NOT NULL（ハッシュ化済）
 | 登録日時         | createdAt      | LocalDateTime   | -
 | 更新日時         | updatedAt      | LocalDateTime   | -
 |===

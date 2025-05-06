@@ -1,0 +1,68 @@
+@startuml register_user_sequence
+actor User
+participant Controller
+participant Service
+participant Repository
+database DB
+
+title ユーザー新規登録（正常・異常系含む）
+
+User -> Controller : 「新規登録ボタン押下」
+note right of User
+入力項目：
+- name : String (必須, 50文字以内)
+- email : String (必須, メール形式, 一意)
+- password : String (必須, 8〜100文字, 英数字混合)
+end note
+
+Controller -> Service : registerUser(requestDto)
+note right of Controller
+DTO: RegisterUserRequestDto
+- name
+- email
+- password
+
+バリデーションチェック:
+- 各項目の必須・形式・長さ
+- emailの重複確認（サービスで行う）
+end note
+
+Service -> Repository : existsByEmail(email)
+note right of Service
+- 入力メールアドレスの存在チェック
+- 重複あれば例外スロー
+end note
+
+alt email重複あり
+Repository -> DB : SELECT COUNT(*) FROM users WHERE email = ?
+DB --> Repository : 件数 > 0
+Repository --> Service : true
+Service --> Controller : throw DuplicateEmailException
+Controller --> User : HTTP 400 Bad Request\nE_VAL_MSG_0001\n"メールアドレスは既に登録されています"
+end
+
+alt email重複なし
+Repository -> DB : SELECT COUNT(*) FROM users WHERE email = ?
+DB --> Repository : 件数 = 0
+Repository --> Service : false
+
+Service -> Repository : save(userEntity)
+note right of Service
+- passwordをハッシュ化（e.g., BCrypt）
+- name, email, password_hashでUserEntity生成
+end note
+
+Repository -> DB : INSERT INTO users (name, email, password_hash)
+DB --> Repository : success（id発番）
+Repository --> Service : userEntity (id, name, email)
+Service --> Controller : RegisterUserResponseDto
+note right of Service
+レスポンスDTO:
+- id : Long
+- name : String
+end note
+
+Controller --> User : HTTP 201 Created\n登録成功
+end
+
+@enduml
