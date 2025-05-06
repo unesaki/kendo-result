@@ -1,0 +1,198 @@
+= チーム参加リクエストAPI 処理詳細設計書
+
+== 対象API
+POST /api/teams/{teamId}/join
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                        | 補足
+
+| DTO  | JoinTeamRequestDto           | チーム参加リクエストDTO
+| DTO  | JoinTeamResponseDto          | チーム参加リクエスト受付レスポンスDTO
+| Entity | TeamJoinRequestsEntity     | team_join_requests テーブルに対応するエンティティ
+|===
+
+=== JoinTeamRequestDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名     | 物理名     | 型     | バリデーションルール
+
+| ユーザーID | userId     | Long   | 必須
+| メッセージ | message    | String | 任意、最大200文字
+|===
+
+=== JoinTeamResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名     | 型     | バリデーションルール
+
+| リクエストID   | requestId  | Long   | -
+| ステータス     | status     | String | -
+| 受付日時       | createdAt  | LocalDateTime | -
+|===
+
+=== TeamJoinRequestsEntityのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名         | 型             | バリデーションルール
+
+| リクエストID   | id             | Long           | 自動採番
+| チームID       | team_id        | Long           | 必須
+| ユーザーID     | user_id        | Long           | 必須
+| メッセージ     | message        | String         | 任意、最大200文字
+| ステータス     | status         | String         | 初期状態は "PENDING"
+| 受付日時       | created_at     | LocalDateTime  | -
+| 更新日時       | updated_at     | LocalDateTime  | -
+|===
+
+==== バリデーションエラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                       | エラーメッセージID | HTTPステータス | パラメータ
+
+| userId が未指定            | E_MSG_0001         | 400             | userId
+| message が200文字を超過    | E_MSG_1002         | 400             | message, max=200
+|===
+
+== Controller定義
+
+=== クラス名
+TeamController
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名     | 型                  | 内容
+
+| teamService      | TeamService         | @Autowired によりDIコンテナからインジェクトされる
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @PostMapping("/teams/{teamId}/join")
+|===
+
+=== パラメータアノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| パラメータ              | アノテーション
+
+| Long teamId            | @PathVariable
+| JoinTeamRequestDto request | @RequestBody
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名        | 戻り値型                          | パラメータ
+
+| requestJoinTeam   | ResponseEntity<JoinTeamResponseDto> | Long teamId, JoinTeamRequestDto request
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamId, request を teamService#requestJoinTeam に渡す。
+| 2 | 登録された JoinTeamResponseDto を ResponseEntity に包み、HTTPステータス 201 Created で返却する。
+| 3 | 処理中に例外が発生した場合は、下記のエラーハンドリング定義に従って適切なレスポンスを返却する。
+|===
+
+==== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | HTTPステータス      | エラーメッセージID | パラメータ
+
+| teamId が不正                | 400 Bad Request     | E_MSG_0001         | teamId
+| teamId が存在しない          | 404 Not Found       | E_MSG_0003         | teamId
+| userId が未指定              | 400 Bad Request     | E_MSG_0001         | userId
+| サーバー内部エラー           | 500 Internal Server Error | E_MSG_0005     | -
+|===
+
+== Service定義
+
+=== クラス名
+TeamService
+
+=== フィールド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| フィールド名                | 型                          | 内容
+
+| teamJoinRequestRepository   | TeamJoinRequestRepository   | @Autowired により注入
+| teamRepository              | TeamRepository              | @Autowired により注入
+|===
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象 | アノテーション
+
+| クラス | @Service
+|===
+
+=== メソッド：requestJoinTeam
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名        | 戻り値型                | パラメータ
+
+| requestJoinTeam   | JoinTeamResponseDto     | Long teamId, JoinTeamRequestDto request
+|===
+
+==== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | teamRepository#existsById を呼び出し、teamId の存在確認を行う。存在しない場合は 404 エラーと `E_MSG_0003` をスローする。
+| 2 | request の userId と message から TeamJoinRequestsEntity を生成する。
+| 3 | status を "PENDING" に設定し、作成日時を現在時刻に設定する。
+| 4 | teamJoinRequestRepository#save を呼び出し、エンティティを保存する。
+| 5 | 保存結果から JoinTeamResponseDto を作成し、呼び出し元に返却する。
+| 6 | その他の例外が発生した場合は、500 エラーと `E_MSG_0005` を返却する。
+|===
+
+== Repository定義
+
+=== リポジトリ名
+TeamJoinRequestRepository（extends JpaRepository<TeamJoinRequestsEntity, Long>）
+
+=== メソッド：save
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名 | パラメータ                 | 戻り値型
+
+| save       | TeamJoinRequestsEntity     | TeamJoinRequestsEntity
+|===
+
+==== クエリ定義
+
+[source,sql]
+----
+INSERT INTO team_join_requests (team_id, user_id, message, status, created_at, updated_at)
+VALUES (:teamId, :userId, :message, 'PENDING', :createdAt, :updatedAt);
+----

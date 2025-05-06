@@ -2,6 +2,8 @@ package com.example.kendo.service.impl;
 
 import java.time.LocalDateTime;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,8 +14,10 @@ import com.example.kendo.repository.UserRepository;
 import com.example.kendo.requestDto.LoginUserRequestDto;
 import com.example.kendo.requestDto.RegisterUserRequestDto;
 import com.example.kendo.responseDto.LoginUserResponseDto;
+import com.example.kendo.responseDto.LogoutUserResponseDto;
 import com.example.kendo.responseDto.RegisterUserResponseDto;
 import com.example.kendo.security.JwtTokenProvider;
+import com.example.kendo.service.TokenBlacklistService;
 import com.example.kendo.service.UserService;
 
 
@@ -28,6 +32,9 @@ public class UserServiceImpl implements UserService {
     
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+    
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
 
     @Override
     public RegisterUserResponseDto registerUser(RegisterUserRequestDto requestDto) {
@@ -83,5 +90,22 @@ public class UserServiceImpl implements UserService {
             user.getUsername(),
             token
         );
+    }
+    
+    @Override
+    public LogoutUserResponseDto logoutUser(HttpServletRequest request) {
+        // Authorizationヘッダーからトークン取得
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Authorizationヘッダーが不正です");
+        }
+
+        String token = authHeader.substring(7); // "Bearer " の後ろを取得
+
+        // トークンを無効化（ブラックリストに登録）
+        tokenBlacklistService.blacklistToken(token);
+
+        return new LogoutUserResponseDto("ログアウトしました");
     }
 }

@@ -1,5 +1,6 @@
 package com.example.kendo.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.kendo.requestDto.LoginUserRequestDto;
 import com.example.kendo.requestDto.RegisterUserRequestDto;
 import com.example.kendo.responseDto.LoginUserResponseDto;
+import com.example.kendo.responseDto.LogoutUserResponseDto;
 import com.example.kendo.responseDto.RegisterUserResponseDto;
 import com.example.kendo.service.UserService;
 
@@ -39,8 +41,9 @@ public class UserController {
     }
     
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        return ResponseEntity.ok("ログアウトしました。");
+    public ResponseEntity<LogoutUserResponseDto> logout(HttpServletRequest request) {
+        LogoutUserResponseDto response = userService.logoutUser(request);
+        return ResponseEntity.ok(response);
     }
 
 
