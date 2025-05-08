@@ -1,11 +1,11 @@
-= チームテンプレート削除API 処理詳細設計書
+= チームテンプレート削除API 処理詳細設計書（個別レスポンスDTO対応）
 
 == 対象API
-DELETE /api/team-templates/{id}
+DELETE /api/team-templates/{templateId}
 
 == 概要
-指定したIDのチームテンプレート情報を削除する。
-該当テンプレートが存在しない場合は404エラーとする。
+指定されたテンプレートIDに対応するチームテンプレート（本体と選手構成）を削除する。  
+削除完了後、テンプレートIDおよび削除実行者（ユーザー）IDを含むレスポンスDTOを返却することで、ログ出力に活用できるようにする。
 
 == Bean定義
 
@@ -13,19 +13,32 @@ DELETE /api/team-templates/{id}
 
 [cols="1,1,2", options="header"]
 |===
-| 種別 | 名称                 | 補足
+| 種別 | 名称                          | 補足
 
-| DTO  | CommonResponseDto     | 結果レスポンスDTO
+| DTO  | DeleteTeamTemplateResponseDto | 削除成功時レスポンスDTO（ID含む）
+| Entity | TeamTemplateEntity          | テンプレート本体
+| Entity | TeamTemplatePlayerEntity    | テンプレート選手構成
 |===
 
-=== CommonResponseDtoのフィールド定義
+=== DeleteTeamTemplateResponseDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名   | 物理名   | 型     | バリデーションルール
+| 論理名         | 物理名         | 型   | バリデーションルール
 
-| ステータス | status | String | -
-| メッセージ | message | String | -
+| テンプレートID | templateId     | Long | -
+| 実行ユーザーID | deletedByUserId| Long | -
+| メッセージ     | message        | String | -
+|===
+
+=== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                         | エラーメッセージID     | HTTPステータス | パラメータ
+
+| 指定IDが存在しない           | E_DB_MSG_0001          | 404             | templateId
+| 内部エラー                   | E_SYS_MSG_0002         | 500             | -
 |===
 
 == Controller定義
@@ -40,25 +53,16 @@ TeamTemplateController
 | 対象     | アノテーション
 
 | クラス   | @RestController, @RequestMapping("/api")
-| メソッド | @DeleteMapping("/team-templates/{id}")
-|===
-
-=== パラメータアノテーション一覧
-
-[cols="1,1", options="header"]
-|===
-| パラメータ | アノテーション
-
-| Long id    | @PathVariable
+| メソッド | @DeleteMapping("/team-templates/{templateId}")
 |===
 
 === メソッド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名          | 戻り値型                   | パラメータ
+| メソッド名             | 戻り値型                                  | パラメータ
 
-| deleteTeamTemplate  | ResponseEntity<CommonResponseDto> | Long id
+| deleteTeamTemplate     | ResponseEntity<DeleteTeamTemplateResponseDto> | @PathVariable Long templateId, @AuthenticationPrincipal UserPrincipal user
 |===
 
 === 処理詳細
@@ -67,11 +71,9 @@ TeamTemplateController
 |===
 | 番号 | 処理内容
 
-| 1 | IDに該当するテンプレートが存在するか確認。
-| 2 | 存在しない場合は404エラー（E_DB_MSG_0001）を返す。
-| 3 | 存在すれば削除処理を実行。
-| 4 | 削除成功メッセージを返却。
-| 5 | 例外が発生した場合は500エラー（E_SYS_MSG_0002）を返す。
+| 1 | `templateId` と実行ユーザーID を受け取り、Service の `deleteTeamTemplate()` を呼び出す
+| 2 | Service から返却された `DeleteTeamTemplateResponseDto` を 200 OK で返却する
+| ※ | ※ 削除処理・存在確認などのロジックは Controller では一切行わず、Service に委譲する
 |===
 
 == Service定義
@@ -79,44 +81,42 @@ TeamTemplateController
 === クラス名
 TeamTemplateService
 
-=== フィールド一覧
-
-[cols="1,1,1", options="header"]
-|===
-| フィールド名         | 型                  | 内容
-
-| teamTemplateMapper    | TeamTemplateMapper  | 削除処理用マッパー
-|===
-
 === メソッド：deleteTeamTemplate
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名           | 戻り値型 | パラメータ
+| メソッド名           | 戻り値型                          | パラメータ
 
-| deleteTeamTemplate   | void     | Long id
+| deleteTeamTemplate   | DeleteTeamTemplateResponseDto     | Long templateId, Long userId
 |===
 
-==== 処理詳細
+=== 処理詳細
 
 [cols="1,2", options="header"]
 |===
 | 番号 | 処理内容
 
-| 1 | ID指定でテンプレート存在チェック。存在しなければE_DB_MSG_0001をスロー。
-| 2 | 存在すれば削除実行。
-| 3 | 正常終了。
-| 4 | 例外時はE_SYS_MSG_0002をスロー。
+| 1 | 指定された `templateId` が存在するか確認（存在しない場合は例外）
+| 2 | `team_template_players` テーブルの該当行を削除
+| 3 | `team_templates` テーブルの該当行を削除
+| 4 | `templateId` と `userId` を含む `DeleteTeamTemplateResponseDto` を生成して返却
 |===
 
 == Repository定義
 
-=== TeamTemplateMapper
-（MyBatis Mapper XML: deleteTeamTemplateById）
+=== TeamTemplateMapper（MyBatis）
 
-==== クエリ定義
 [source,sql]
 ----
-DELETE FROM team_templates
-WHERE id = #{id};
+<select id="existsById" parameterType="long" resultType="boolean">
+  SELECT COUNT(*) > 0 FROM team_templates WHERE id = #{templateId}
+</select>
+
+<delete id="deleteTeamTemplatePlayers" parameterType="long">
+  DELETE FROM team_template_players WHERE template_id = #{templateId}
+</delete>
+
+<delete id="deleteTeamTemplate" parameterType="long">
+  DELETE FROM team_templates WHERE id = #{templateId}
+</delete>
 ----

@@ -4,8 +4,7 @@
 POST /api/team-matches
 
 == 概要
-団体戦の試合結果を登録するAPI。
-1つの団体戦は5人制（先鋒〜大将）で構成され、各試合の勝敗を含めて1リクエストで登録する。
+団体戦の試合結果を新規に登録するAPI。1試合につき赤・白チームそれぞれ5人の選手、及び各試合の結果を登録する。
 
 == Bean定義
 
@@ -13,74 +12,52 @@ POST /api/team-matches
 
 [cols="1,1,2", options="header"]
 |===
-| 種別 | 名称                        | 補足
+| 種別 | 名称                           | 補足
 
-| DTO  | CreateTeamMatchRequestDto   | 団体戦試合登録リクエストDTO
-| DTO  | CreateTeamMatchResponseDto  | 登録完了時レスポンスDTO
-| Entity | TeamMatchEntity           | 団体戦全体の情報
-| Entity | TeamMatchDetailEntity     | 各ポジションごとの試合結果（5件）
+| DTO  | CreateTeamMatchRequestDto     | 団体戦試合登録リクエストDTO
+| DTO  | CreateTeamMatchResponseDto    | 登録完了時レスポンスDTO
+| DTO  | TeamMatchResultDto            | 各ポジションごとの結果（5件）
+| Entity | TeamMatchEntity             | 団体戦全体の情報
+| Entity | TeamMatchDetailEntity       | 各ポジションごとの試合結果（5件）
 |===
 
 === CreateTeamMatchRequestDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名 | 物理名 | 型 | バリデーションルール
+| 論理名       | 物理名         | 型               | バリデーションルール
 
-| 大会ID | tournamentId | Long | 必須
-| ラウンド名 | roundName | String | 必須（例: "1回戦"）
-| 赤チーム名 | redTeamName | String | 必須、最大50文字
-| 白チーム名 | whiteTeamName | String | 必須、最大50文字
-| 試合詳細リスト | matches | List<TeamMatchDetailDto> | 必須、5件
+| 大会ID       | tournamentId   | Long             | 必須
+| 赤チーム名   | redTeamName    | String           | 必須、最大100文字
+| 白チーム名   | whiteTeamName  | String           | 必須、最大100文字
+| 試合日時     | matchDate      | LocalDateTime    | 任意、省略時は現在日時
+| 試合結果リスト | matchResults   | List<TeamMatchResultDto> | 必須、要素数＝5
 |===
 
-==== TeamMatchDetailDtoのフィールド定義
+=== TeamMatchResultDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名 | 物理名 | 型 | バリデーションルール
+| 論理名         | 物理名           | 型     | バリデーションルール
 
-| ポジション | position | String | 必須（先鋒、次鋒、中堅、副将、大将）
-| 赤選手名 | redPlayer | String | 任意、最大50文字
-| 白選手名 | whitePlayer | String | 任意、最大50文字
-| 勝敗 | result | String | 必須（"赤"、"白"、"引き分け"）
+| 赤選手名       | redPlayerName    | String | 任意（空欄可）
+| 白選手名       | whitePlayerName  | String | 任意（空欄可）
+| 技あり（赤）   | redPoints        | List<String> | 最大2件、要素は"メ"、"コ"、"ド"、"ツ"、"反"、"不" のいずれか
+| 技あり（白）   | whitePoints      | List<String> | 最大2件、要素は同上
+| 不戦勝（赤）   | redWinDefault    | boolean | 任意
+| 不戦勝（白）   | whiteWinDefault  | boolean | 任意
+| 引き分け       | draw             | boolean | 任意
+| ポジション     | position          | String | 必須（"先鋒"、"次鋒"、"中堅"、"副将"、"大将"）
 |===
 
 === CreateTeamMatchResponseDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名 | 物理名 | 型 | バリデーションルール
+| 論理名     | 物理名     | 型   | バリデーションルール
 
-| 団体戦ID | teamMatchId | Long | 自動採番
-|===
-
-=== TeamMatchEntityのフィールド定義
-
-[cols="1,1,1,1", options="header"]
-|===
-| 論理名 | 物理名 | 型 | バリデーションルール
-
-| ID | id | Long | PK, AUTO_INCREMENT
-| 大会ID | tournament_id | Long | FK(tournaments.id)
-| ラウンド名 | round_name | String | NOT NULL
-| 赤チーム名 | red_team_name | String | NOT NULL
-| 白チーム名 | white_team_name | String | NOT NULL
-| 登録日時 | created_at | Timestamp | 自動設定
-|===
-
-=== TeamMatchDetailEntityのフィールド定義
-
-[cols="1,1,1,1", options="header"]
-|===
-| 論理名 | 物理名 | 型 | バリデーションルール
-
-| ID | id | Long | PK, AUTO_INCREMENT
-| 団体戦ID | team_match_id | Long | FK(team_matches.id)
-| ポジション | position | String | NOT NULL
-| 赤選手名 | red_player | String | 空可、最大50文字
-| 白選手名 | white_player | String | 空可、最大50文字
-| 勝敗 | result | String | NOT NULL
+| 団体戦ID   | teamMatchId | Long | -
+| メッセージ | message      | String | -
 |===
 
 == Controller定義
@@ -92,28 +69,19 @@ TeamMatchController
 
 [cols="1,1", options="header"]
 |===
-| 対象 | アノテーション
+| 対象   | アノテーション
 
 | クラス | @RestController, @RequestMapping("/api")
 | メソッド | @PostMapping("/team-matches")
-|===
-
-=== パラメータアノテーション一覧
-
-[cols="1,1", options="header"]
-|===
-| パラメータ | アノテーション
-
-| CreateTeamMatchRequestDto request | @RequestBody
 |===
 
 === メソッド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型 | パラメータ
+| メソッド名         | 戻り値型                          | パラメータ
 
-| createTeamMatch | ResponseEntity<CreateTeamMatchResponseDto> | CreateTeamMatchRequestDto request
+| createTeamMatch    | ResponseEntity<CreateTeamMatchResponseDto> | CreateTeamMatchRequestDto requestDto
 |===
 
 === 処理詳細
@@ -122,10 +90,10 @@ TeamMatchController
 |===
 | 番号 | 処理内容
 
-| 1 | バリデーションを実行。不正があれば400エラーを返却。
-| 2 | サービス層にリクエストDTOを渡して処理を委譲。
-| 3 | 登録成功時は登録IDを含むレスポンスDTOを返却。
-| 4 | エラー発生時は適切なステータスとメッセージを返却。
+| 1 | リクエストDTOのバリデーションを実施
+| 2 | TeamMatchEntity を作成しDBに保存
+| 3 | TeamMatchDetailEntity を5件分作成しDBに保存
+| 4 | 登録成功メッセージと団体戦IDを含むレスポンスを返却
 |===
 
 == Service定義
@@ -133,22 +101,13 @@ TeamMatchController
 === クラス名
 TeamMatchService
 
-=== フィールド一覧
-
-[cols="1,1,1", options="header"]
-|===
-| フィールド名 | 型 | 内容
-
-| teamMatchMapper | TeamMatchMapper | 団体戦登録用マッパー
-|===
-
 === メソッド：createTeamMatch
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型 | パラメータ
+| メソッド名       | 戻り値型                   | パラメータ
 
-| createTeamMatch | Long | CreateTeamMatchRequestDto request
+| createTeamMatch  | CreateTeamMatchResponseDto | CreateTeamMatchRequestDto requestDto
 |===
 
 === 処理詳細
@@ -157,10 +116,9 @@ TeamMatchService
 |===
 | 番号 | 処理内容
 
-| 1 | request から TeamMatchEntity と List<TeamMatchDetailEntity> を作成
-| 2 | team_match テーブルに insert（mapper）
-| 3 | 生成された team_match_id をもとに、team_match_detail テーブルへ5件 insert
-| 4 | 登録IDを返却
+| 1 | 試合情報を TeamMatchEntity に変換し登録、生成された ID を取得
+| 2 | 各ポジションの TeamMatchDetailEntity をループ処理で作成し、一括保存
+| 3 | 登録成功レスポンスDTOを作成して返却
 |===
 
 == Repository定義
@@ -169,20 +127,11 @@ TeamMatchService
 
 [source,sql]
 ----
--- 団体戦全体の登録
-INSERT INTO team_matches (
-  tournament_id, round_name, red_team_name, white_team_name, created_at
-) VALUES (
-  #{tournamentId}, #{roundName}, #{redTeamName}, #{whiteTeamName}, NOW()
-);
+-- ヘッダー登録
+INSERT INTO team_matches (tournament_id, red_team_name, white_team_name, match_date)
+VALUES (#{tournamentId}, #{redTeamName}, #{whiteTeamName}, #{matchDate});
 
--- 登録ID取得
-SELECT LAST_INSERT_ID();
-
--- 個別試合登録（5件ループ）
-INSERT INTO team_match_detail (
-  team_match_id, position, red_player, white_player, result
-) VALUES (
-  #{teamMatchId}, #{position}, #{redPlayer}, #{whitePlayer}, #{result}
-);
+-- 明細登録（ループで呼び出し）
+INSERT INTO team_match_details (team_match_id, red_player_name, white_player_name, red_points, white_points, red_win_default, white_win_default, draw, position)
+VALUES (#{teamMatchId}, #{redPlayerName}, #{whitePlayerName}, #{redPoints}, #{whitePoints}, #{redWinDefault}, #{whiteWinDefault}, #{draw}, #{position});
 ----

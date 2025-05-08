@@ -1,0 +1,112 @@
+= チームテンプレート一覧取得API 処理詳細設計書
+
+== 対象API
+GET /api/team-templates
+
+== 概要
+登録されている全てのチームテンプレートの一覧（テンプレートIDとチーム名のみ）を取得する。
+
+== Bean定義
+
+=== 種別一覧
+
+[cols="1,1,2", options="header"]
+|===
+| 種別 | 名称                     | 補足
+
+| DTO  | TeamTemplateListDto      | 一覧表示用DTO（テンプレートID、チーム名）
+| Entity | TeamTemplateEntity     | チームテンプレート本体
+|===
+
+=== TeamTemplateListDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名       | 型   | バリデーションルール
+
+| テンプレートID | templateId   | Long | -
+| チーム名       | teamName     | String | -
+|===
+
+=== エラーハンドリング定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 原因                | エラーメッセージID     | HTTPステータス | パラメータ
+
+| データ取得失敗      | E_SYS_MSG_0002         | 500             | -
+|===
+
+== Controller定義
+
+=== クラス名
+TeamTemplateController
+
+=== アノテーション一覧
+
+[cols="1,1", options="header"]
+|===
+| 対象     | アノテーション
+
+| クラス   | @RestController, @RequestMapping("/api")
+| メソッド | @GetMapping("/team-templates")
+|===
+
+=== メソッド一覧
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名            | 戻り値型                                | パラメータ
+
+| getTeamTemplateList   | ResponseEntity<List<TeamTemplateListDto>> | なし
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | Service の `getTeamTemplateList()` を呼び出し、一覧を取得
+| 2 | 取得結果を ResponseEntity に包み、200 OK で返却
+| ※ | ※ データ取得ロジックはすべて Service 層にて実施
+|===
+
+== Service定義
+
+=== クラス名
+TeamTemplateService
+
+=== メソッド：getTeamTemplateList
+
+[cols="1,1,1", options="header"]
+|===
+| メソッド名            | 戻り値型                      | パラメータ
+
+| getTeamTemplateList   | List<TeamTemplateListDto>     | なし
+|===
+
+=== 処理詳細
+
+[cols="1,2", options="header"]
+|===
+| 番号 | 処理内容
+
+| 1 | Repository の `selectTeamTemplateList()` を呼び出し、全件取得
+| 2 | Entity → DTO にマッピングして返却
+|===
+
+== Repository定義
+
+=== TeamTemplateMapper（MyBatis）
+
+[source,sql]
+----
+<select id="selectTeamTemplateList" resultType="com.example.kendo.dto.TeamTemplateListDto">
+  SELECT
+    id AS templateId,
+    team_name AS teamName
+  FROM team_templates
+  ORDER BY id DESC
+</select>
+----

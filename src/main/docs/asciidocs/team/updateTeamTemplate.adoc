@@ -1,11 +1,12 @@
-= チームテンプレート更新API 処理詳細設計書
+= チームテンプレート更新API 処理詳細設計書（個別レスポンスDTO・責務分離・ユーザーID取得明記）
 
 == 対象API
-PUT /api/team-templates/{id}
+PUT /api/team-templates/{templateId}
 
 == 概要
-指定したIDのチームテンプレート情報（チーム名＋選手構成）を更新する。
-チーム名は必須、選手名は空文字可。
+既存のチームテンプレートを更新するAPI。テンプレートIDを指定し、チーム名と選手構成（先鋒〜大将）を新しい内容に置き換える。  
+既存の選手構成情報は全件削除後に再登録する。  
+※ ビジネスロジックはすべて Service 層にて実装し、Controller は委譲のみを担当する。ログ出力に対応するため、ユーザーIDもレスポンスに含める。
 
 == Bean定義
 
@@ -13,46 +14,57 @@ PUT /api/team-templates/{id}
 
 [cols="1,1,2", options="header"]
 |===
-| 種別 | 名称                        | 補足
+| 種別 | 名称                             | 補足
 
-| DTO  | UpdateTeamTemplateRequestDto | 更新リクエスト用DTO
-| DTO  | CommonResponseDto             | 結果レスポンスDTO
-| Entity | TeamTemplateEntity          | チームテンプレート情報（更新対象）
+| DTO  | UpdateTeamTemplateRequestDto      | リクエストDTO（チーム名＋選手構成）
+| DTO  | TeamTemplateMemberDto             | 選手構成1件（ポジション＋選手名）
+| DTO  | UpdateTeamTemplateResponseDto     | 更新成功レスポンスDTO（ID・ユーザー情報付き）
+| Entity | TeamTemplateEntity              | テンプレート本体Entity
+| Entity | TeamTemplatePlayerEntity        | 選手構成Entity（5件）
 |===
 
 === UpdateTeamTemplateRequestDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名   | 物理名   | 型     | バリデーションルール
+| 論理名       | 物理名     | 型              | バリデーションルール
 
-| チーム名 | teamName | String | 必須、最大50文字
-| 先鋒     | senpo    | String | 最大50文字（空文字可）
-| 次鋒     | jiho     | String | 最大50文字（空文字可）
-| 中堅     | chuken   | String | 最大50文字（空文字可）
-| 副将     | fukusho  | String | 最大50文字（空文字可）
-| 大将     | taisho   | String | 最大50文字（空文字可）
+| チーム名     | teamName   | String          | 必須、最大20文字
+| メンバー一覧 | members    | List<TeamTemplateMemberDto> | 必須（5件固定）
 |===
 
-=== CommonResponseDtoのフィールド定義
+=== TeamTemplateMemberDtoのフィールド定義
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名   | 物理名   | 型     | バリデーションルール
+| 論理名     | 物理名     | 型     | バリデーションルール
 
-| ステータス | status | String | -
-| メッセージ | message | String | -
+| ポジション | position   | String | 必須（先鋒〜大将）
+| 選手名     | playerName | String | 任意（空欄可）、最大10文字
 |===
 
-==== バリデーションエラーハンドリング定義
+=== UpdateTeamTemplateResponseDtoのフィールド定義
+
+[cols="1,1,1,1", options="header"]
+|===
+| 論理名         | 物理名         | 型   | バリデーションルール
+
+| テンプレートID | templateId      | Long | -
+| 実行ユーザーID | updatedByUserId | Long | -
+| メッセージ     | message          | String | -
+|===
+
+=== バリデーションエラーハンドリング定義
 
 [cols="1,1,1,1", options="header"]
 |===
 | 原因                      | エラーメッセージID     | HTTPステータス | パラメータ
 
 | チーム名が未入力          | E_VAL_MSG_0001         | 400             | teamName
-| チーム名が50文字を超える  | E_VAL_MSG_0006         | 400             | teamName
-| 選手名が50文字を超える    | E_VAL_MSG_0006         | 400             | senpo, jiho, chuken, fukusho, taisho
+| チーム名が20文字超過      | E_VAL_MSG_0006         | 400             | teamName, max=20
+| メンバー数が5件でない     | E_VAL_MSG_0002         | 400             | members
+| ポジションが未指定        | E_VAL_MSG_0001         | 400             | members[n].position
+| 選手名が10文字超過        | E_VAL_MSG_0006         | 400             | members[n].playerName, max=10
 |===
 
 == Controller定義
@@ -64,29 +76,19 @@ TeamTemplateController
 
 [cols="1,1", options="header"]
 |===
-| 対象     | アノテーション
+| 対象   | アノテーション
 
 | クラス   | @RestController, @RequestMapping("/api")
-| メソッド | @PutMapping("/team-templates/{id}")
-|===
-
-=== パラメータアノテーション一覧
-
-[cols="1,1", options="header"]
-|===
-| パラメータ                             | アノテーション
-
-| Long id                                | @PathVariable
-| UpdateTeamTemplateRequestDto request   | @RequestBody
+| メソッド | @PutMapping("/team-templates/{templateId}")
 |===
 
 === メソッド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名        | 戻り値型                     | パラメータ
+| メソッド名             | 戻り値型                                      | パラメータ
 
-| updateTeamTemplate | ResponseEntity<CommonResponseDto> | Long id, UpdateTeamTemplateRequestDto request
+| updateTeamTemplate     | ResponseEntity<UpdateTeamTemplateResponseDto> | @PathVariable Long templateId, @RequestBody @Valid UpdateTeamTemplateRequestDto request, @AuthenticationPrincipal UserPrincipal user
 |===
 
 === 処理詳細
@@ -95,11 +97,10 @@ TeamTemplateController
 |===
 | 番号 | 処理内容
 
-| 1 | リクエストをバリデーション。不正があれば400エラー返却。
-| 2 | 指定IDのテンプレートが存在するか確認。存在しなければ404を返す。
-| 3 | TeamTemplateEntity にマッピングし、更新処理を実行。
-| 4 | 成功レスポンス（200）を返却。
-| 5 | 例外発生時は500エラー（E_SYS_MSG_0002）を返す。
+| 1 | `@AuthenticationPrincipal` によりログインユーザー（UserPrincipal）を取得し、userId を `user.getId()` で抽出する。
+| 2 | `templateId`、request DTO、userId を Service の `updateTeamTemplate()` に引き渡す。
+| 3 | 戻り値DTOを ResponseEntity に包み、HTTPステータス 200 OK で返却。
+| ※ | ※ ビジネスロジック（更新・削除・再登録）はすべて Service にて処理。
 |===
 
 == Service定義
@@ -107,50 +108,53 @@ TeamTemplateController
 === クラス名
 TeamTemplateService
 
-=== フィールド一覧
-
-[cols="1,1,1", options="header"]
-|===
-| フィールド名         | 型                  | 内容
-
-| teamTemplateMapper    | TeamTemplateMapper  | 更新処理用マッパー
-|===
-
 === メソッド：updateTeamTemplate
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名            | 戻り値型              | パラメータ
+| メソッド名           | 戻り値型                          | パラメータ
 
-| updateTeamTemplate    | void                  | Long id, UpdateTeamTemplateRequestDto request
+| updateTeamTemplate   | UpdateTeamTemplateResponseDto     | Long templateId, UpdateTeamTemplateRequestDto request, Long userId
 |===
 
-==== 処理詳細
+=== 処理詳細
 
 [cols="1,2", options="header"]
 |===
 | 番号 | 処理内容
 
-| 1 | idを元にテンプレートの存在確認。なければE_DB_MSG_0001をスロー。
-| 2 | DTOからEntityに変換し、update実行。
-| 3 | 正常終了。
-| 4 | 例外時はE_SYS_MSG_0002をスロー。
+| 1 | `templateId` が存在するか確認（存在しなければ例外をスロー）
+| 2 | チーム名を更新（updateTeamTemplate）
+| 3 | 既存選手構成を削除（deleteTeamTemplatePlayers）
+| 4 | members を Entity 化し、templateId を付与して再登録（insertTeamTemplatePlayers）
+| 5 | `templateId`・`userId` を含む UpdateTeamTemplateResponseDto を返却
 |===
 
 == Repository定義
 
-=== TeamTemplateMapper
-（MyBatis Mapper XML: updateTeamTemplate）
+=== TeamTemplateMapper（MyBatis）
 
-==== クエリ定義
 [source,sql]
 ----
-UPDATE team_templates
-SET name = #{teamName},
-    senpo = #{senpo},
-    jiho = #{jiho},
-    chuken = #{chuken},
-    fukusho = #{fukusho},
-    taisho = #{taisho}
-WHERE id = #{id};
+<select id="existsById" parameterType="long" resultType="boolean">
+  SELECT COUNT(*) > 0 FROM team_templates WHERE id = #{templateId}
+</select>
+
+<update id="updateTeamTemplate" parameterType="TeamTemplateEntity">
+  UPDATE team_templates
+  SET team_name = #{teamName}
+  WHERE id = #{id}
+</update>
+
+<delete id="deleteTeamTemplatePlayers" parameterType="long">
+  DELETE FROM team_template_players WHERE template_id = #{templateId}
+</delete>
+
+<insert id="insertTeamTemplatePlayers" parameterType="java.util.List">
+  INSERT INTO team_template_players (template_id, position, player_name)
+  VALUES
+  <foreach collection="list" item="item" separator=",">
+    (#{item.templateId}, #{item.position}, #{item.playerName})
+  </foreach>
+</insert>
 ----

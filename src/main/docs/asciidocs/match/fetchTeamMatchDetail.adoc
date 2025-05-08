@@ -1,10 +1,11 @@
-= 団体戦結果詳細取得API 処理詳細設計書
+= 団体戦結果詳細取得API 処理詳細設計書（責務分離済）
 
 == 対象API
 GET /api/team-matches/{teamMatchId}
 
 == 概要
-指定された団体戦試合結果（ヘッダおよび5件の詳細）を取得するAPI。
+指定された団体戦試合結果（ヘッダ情報および5件の詳細情報）を取得するAPI。  
+パスパラメータで受け取った試合IDを元に、試合全体情報および各ポジションの選手・勝敗をレスポンスとして返却する。
 
 == Bean定義
 
@@ -12,10 +13,12 @@ GET /api/team-matches/{teamMatchId}
 
 [cols="1,1,2", options="header"]
 |===
-| 種別 | 名称                        | 補足
+| 種別 | 名称                          | 補足
 
-| DTO  | TeamMatchDetailResponseDto | 団体戦試合詳細のレスポンスDTO
-| DTO  | MatchResultDto             | 各ポジションの詳細（5件）
+| DTO  | TeamMatchDetailResponseDto     | 団体戦試合詳細のレスポンスDTO
+| DTO  | MatchResultDto                 | 各ポジションの詳細（5件）
+| Entity | TeamMatchEntity              | ヘッダ情報
+| Entity | TeamMatchDetailEntity        | 明細情報
 |===
 
 === TeamMatchDetailResponseDtoのフィールド定義
@@ -36,12 +39,12 @@ GET /api/team-matches/{teamMatchId}
 
 [cols="1,1,1,1", options="header"]
 |===
-| 論理名           | 物理名         | 型     | バリデーションルール
+| 論理名       | 物理名     | 型     | バリデーションルール
 
-| ポジション       | position        | String | 先鋒〜大将のいずれか
-| 赤選手名         | redPlayer       | String | -
-| 白選手名         | whitePlayer     | String | -
-| 試合結果         | result          | String | WIN / LOSE / DRAW
+| ポジション   | position   | String | 先鋒〜大将
+| 赤選手名     | redPlayer  | String | -
+| 白選手名     | whitePlayer| String | -
+| 試合結果     | result     | String | WIN / LOSE / DRAW
 |===
 
 == Controller定義
@@ -53,40 +56,30 @@ TeamMatchController
 
 [cols="1,1", options="header"]
 |===
-| 対象 | アノテーション
+| 対象     | アノテーション
 
-| クラス | @RestController, @RequestMapping("/api")
+| クラス   | @RestController, @RequestMapping("/api")
 | メソッド | @GetMapping("/team-matches/{teamMatchId}")
-|===
-
-=== パラメータアノテーション一覧
-
-[cols="1,1", options="header"]
-|===
-| パラメータ | アノテーション
-
-| Long teamMatchId | @PathVariable
 |===
 
 === メソッド一覧
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型 | パラメータ
+| メソッド名           | 戻り値型                            | パラメータ
 
-| getTeamMatchDetail | ResponseEntity<TeamMatchDetailResponseDto> | Long teamMatchId
+| getTeamMatchDetail    | ResponseEntity<TeamMatchDetailResponseDto> | @PathVariable Long teamMatchId
 |===
 
-=== 処理詳細
+=== 処理詳細（修正済）
 
 [cols="1,2", options="header"]
 |===
 | 番号 | 処理内容
 
-| 1 | パスパラメータ teamMatchId を検証し、対象レコードをDBから取得。
-| 2 | 該当する team_match（ヘッダ）および team_match_detail（5件）を取得。
-| 3 | DTO にマッピングし、レスポンスとして返却。
-| 4 | 対象が存在しない場合は404エラーを返却。
+| 1 | `teamMatchId` を受け取り、Service の `getTeamMatchDetail()` を呼び出す。
+| 2 | Service から返却された `TeamMatchDetailResponseDto` を 200 OK として返却する。
+| ※ | ※ 試合データの取得・存在チェック・マッピングなどの処理は Controller では行わず、すべて Service に委譲する。
 |===
 
 == Service定義
@@ -98,9 +91,9 @@ TeamMatchService
 
 [cols="1,1,1", options="header"]
 |===
-| メソッド名 | 戻り値型                     | パラメータ
+| メソッド名             | 戻り値型                          | パラメータ
 
-| getTeamMatchDetail | TeamMatchDetailResponseDto | Long teamMatchId
+| getTeamMatchDetail     | TeamMatchDetailResponseDto        | Long teamMatchId
 |===
 
 === 処理詳細
@@ -109,9 +102,9 @@ TeamMatchService
 |===
 | 番号 | 処理内容
 
-| 1 | team_match を teamMatchId で取得。存在しなければ 404。
-| 2 | team_match_detail を teamMatchId で全件取得。
-| 3 | DTO にマッピングし、返却。
+| 1 | Repository の `selectTeamMatchById()` を呼び出し、ヘッダ情報を取得（存在しない場合は 404 をスロー）
+| 2 | `selectTeamMatchDetailsById()` を呼び出して、明細情報（5件）を取得
+| 3 | ヘッダ情報・明細情報を DTO にマッピングし、レスポンスとして返却
 |===
 
 == Repository定義
@@ -120,14 +113,18 @@ TeamMatchService
 
 [source,sql]
 ----
--- ヘッダ取得
-SELECT *
-FROM team_matches
-WHERE id = #{teamMatchId};
+<!-- ヘッダ取得 -->
+<select id="selectTeamMatchById" parameterType="long" resultType="com.example.kendo.entity.TeamMatchEntity">
+  SELECT *
+  FROM team_matches
+  WHERE id = #{teamMatchId}
+</select>
 
--- 明細取得（5件）
-SELECT *
-FROM team_match_detail
-WHERE team_match_id = #{teamMatchId}
-ORDER BY position_order ASC;
+<!-- 明細取得 -->
+<select id="selectTeamMatchDetailsById" parameterType="long" resultType="com.example.kendo.entity.TeamMatchDetailEntity">
+  SELECT *
+  FROM team_match_detail
+  WHERE team_match_id = #{teamMatchId}
+  ORDER BY position_order ASC
+</select>
 ----

@@ -1,10 +1,11 @@
-= 団体戦結果一覧取得API 処理詳細設計書
+= 団体戦結果一覧取得API 処理詳細設計書（責務分離済）
 
 == 対象API
 GET /api/team-matches
 
 == 概要
-全ての団体戦試合結果（ヘッダ情報のみ）を一覧で取得するAPI。
+全ての団体戦試合結果（ヘッダ情報のみ）を一覧で取得するAPI。  
+取得は match_date の降順。バリデーションやDBアクセスなどのビジネスロジックは Service に委譲する。
 
 == Bean定義
 
@@ -14,7 +15,8 @@ GET /api/team-matches
 |===
 | 種別 | 名称                     | 補足
 
-| DTO  | TeamMatchListDto       | 団体戦試合結果一覧の1件分のDTO
+| DTO  | TeamMatchListDto        | 団体戦試合結果一覧の1件分のDTO
+| Entity | TeamMatchEntity       | ヘッダ情報Entity
 |===
 
 === TeamMatchListDtoのフィールド定義
@@ -54,15 +56,15 @@ TeamMatchController
 | getTeamMatchList     | ResponseEntity<List<TeamMatchListDto>> | なし
 |===
 
-=== 処理詳細
+=== 処理詳細（修正済）
 
 [cols="1,2", options="header"]
 |===
 | 番号 | 処理内容
 
-| 1 | team_matches テーブルから全件取得（order by match_date desc）。
-| 2 | TeamMatchListDto にマッピング。
-| 3 | レスポンスとして返却。
+| 1 | Service の `getTeamMatchList()` を呼び出し、一覧を取得する。
+| 2 | 戻り値を `ResponseEntity` に包み、200 OK で返却する。
+| ※ | ※ DBアクセス・マッピング・ソートなどの処理はすべて Service にて行う。
 |===
 
 == Service定義
@@ -85,8 +87,8 @@ TeamMatchService
 |===
 | 番号 | 処理内容
 
-| 1 | team_matches テーブルの全データを取得（降順）。
-| 2 | 各レコードを TeamMatchListDto に詰め替え。
+| 1 | Repository の `selectTeamMatchList()` を実行し、全件（match_date降順）を取得。
+| 2 | 結果を DTO にマッピング。
 | 3 | 一覧として返却。
 |===
 
@@ -96,13 +98,14 @@ TeamMatchService
 
 [source,sql]
 ----
--- 一覧取得
-SELECT
-  id AS teamMatchId,
-  tournament_id AS tournamentId,
-  red_team_name AS redTeamName,
-  white_team_name AS whiteTeamName,
-  match_date AS matchDate
-FROM team_matches
-ORDER BY match_date DESC;
+<select id="selectTeamMatchList" resultType="com.example.kendo.dto.TeamMatchListDto">
+  SELECT
+    id AS teamMatchId,
+    tournament_id AS tournamentId,
+    red_team_name AS redTeamName,
+    white_team_name AS whiteTeamName,
+    match_date AS matchDate
+  FROM team_matches
+  ORDER BY match_date DESC
+</select>
 ----
