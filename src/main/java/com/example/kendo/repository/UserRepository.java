@@ -27,4 +27,5 @@ public interface UserRepository {
      * @return 該当ユーザー（なければnull）
      */
     UserEntity findByEmail(@Param("email") String email);
+    UserEntity findById(Long id);
 }

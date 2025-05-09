@@ -5,45 +5,37 @@
 
 <mapper namespace="com.example.kendo.repository.UserRepository">
 
-    <!-- メールアドレスによるユーザー数のカウント -->
-    <select id="countByEmail" parameterType="string" resultType="int">
-        SELECT COUNT(*)
-        FROM users
-        WHERE email = #{email}
-    </select>
-
-    <!-- ユーザーの新規登録 -->
-    <insert id="insert" parameterType="com.example.kendo.entity.UserEntity" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO users (
-            username,
-            email,
-            password,
-            created_at,
-            updated_at
-        ) VALUES (
-            #{username},
-            #{email},
-            #{password},
-            #{createdAt},
-            #{updatedAt}
-        )
-    </insert>
-    
-    <select id="selectLastInsertId" resultType="long">
-    SELECT LAST_INSERT_ID()
-</select>
-    
-    <select id="findByEmail" parameterType="string" resultType="com.example.kendo.entity.UserEntity">
+  <select id="findByEmail" resultType="com.example.kendo.entity.UserEntity">
     SELECT
-        id,
-        username,
-        email,
-        password,
-        created_at,
-        updated_at
+      id,
+      username,
+      email,
+      password,
+      created_at,
+      updated_at
     FROM users
     WHERE email = #{email}
-</select>
+  </select>
 
+  <select id="findById" parameterType="long" resultType="com.example.kendo.entity.UserEntity">
+    SELECT
+      id,
+      username,
+      email,
+      password,
+      created_at,
+      updated_at
+    FROM users
+    WHERE id = #{id}
+  </select>
+
+  <select id="countByEmail" resultType="int">
+    SELECT COUNT(*) FROM users WHERE email = #{email}
+  </select>
+
+  <insert id="insert" parameterType="com.example.kendo.entity.UserEntity" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO users (username, email, password, created_at, updated_at)
+    VALUES (#{username}, #{email}, #{password}, #{createdAt}, #{updatedAt})
+  </insert>
 
 </mapper>

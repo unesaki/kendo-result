@@ -1,28 +1,41 @@
 package com.example.kendo.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.example.kendo.security.JwtAuthenticationFilter;
+import com.example.kendo.service.CustomUserDetailsService;
 
 @Configuration
 public class SecurityConfig {
+    
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
 
-    // パスワードエンコーダ（そのままでOK）
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // Spring Security のアクセス制御設定を追加
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // CSRF無効化（PostmanなどからのPOST用）
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // 全てのリクエストを許可（開発用）
-            );
+                .requestMatchers("/api/register", "/api/login").permitAll()
+                .anyRequest().authenticated()
+            )
+            .userDetailsService(customUserDetailsService)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
