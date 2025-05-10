@@ -11,6 +11,9 @@ import com.example.kendo.entity.TeamTemplatePlayerEntity;
 public interface TeamTemplateRepository {
 
     void insertTeamTemplate(TeamTemplateEntity entity);
-
     void insertTeamTemplatePlayers(List<TeamTemplatePlayerEntity> players);
+    
+    boolean existsById(Long templateId);
+    void updateTeamTemplate(TeamTemplateEntity entity);
+    void deleteTeamTemplatePlayers(Long templateId);
 }

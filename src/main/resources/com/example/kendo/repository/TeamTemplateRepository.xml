@@ -17,5 +17,19 @@
       (#{item.templateId}, #{item.position}, #{item.playerName})
     </foreach>
   </insert>
+  
+  <select id="existsById" parameterType="long" resultType="boolean">
+    SELECT COUNT(*) > 0 FROM team_templates WHERE id = #{templateId}
+  </select>
+
+  <update id="updateTeamTemplate" parameterType="com.example.kendo.entity.TeamTemplateEntity">
+    UPDATE team_templates
+    SET team_name = #{teamName}
+    WHERE id = #{id}
+  </update>
+
+  <delete id="deleteTeamTemplatePlayers" parameterType="long">
+    DELETE FROM team_template_players WHERE template_id = #{templateId}
+  </delete>
 
 </mapper>
