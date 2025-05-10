@@ -31,5 +31,9 @@
   <delete id="deleteTeamTemplatePlayers" parameterType="long">
     DELETE FROM team_template_players WHERE template_id = #{templateId}
   </delete>
+  
+  <delete id="deleteTeamTemplate" parameterType="long">
+    DELETE FROM team_templates WHERE id = #{templateId}
+  </delete>
 
 </mapper>

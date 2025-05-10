@@ -12,6 +12,7 @@ import com.example.kendo.exception.BusinessException;
 import com.example.kendo.repository.TeamTemplateRepository;
 import com.example.kendo.requestDto.RegisterTeamTemplateRequestDto;
 import com.example.kendo.requestDto.UpdateTeamTemplateRequestDto;
+import com.example.kendo.responseDto.DeleteTeamTemplateResponseDto;
 import com.example.kendo.responseDto.RegisterTeamTemplateResponseDto;
 import com.example.kendo.responseDto.UpdateTeamTemplateResponseDto;
 import com.example.kendo.service.TeamTemplateService;
@@ -69,5 +70,17 @@ public class TeamTemplateServiceImpl implements TeamTemplateService{
         teamTemplateRepository.insertTeamTemplatePlayers(players);
 
         return new UpdateTeamTemplateResponseDto(templateId, userId, "テンプレートを更新しました");
+    }
+    
+    @Override
+    public DeleteTeamTemplateResponseDto deleteTeamTemplate(Long templateId, Long userId) {
+        if (!teamTemplateRepository.existsById(templateId)) {
+            throw new BusinessException("E_DB_MSG_0001", "templateId");
+        }
+
+        teamTemplateRepository.deleteTeamTemplatePlayers(templateId);
+        teamTemplateRepository.deleteTeamTemplate(templateId);
+
+        return new DeleteTeamTemplateResponseDto(templateId, userId, "テンプレートを削除しました。");
     }
 }
