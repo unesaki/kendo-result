@@ -1,5 +1,8 @@
 package com.example.kendo.service;
 
+import java.util.List;
+
+import com.example.kendo.dto.TeamTemplateListDto;
 import com.example.kendo.requestDto.RegisterTeamTemplateRequestDto;
 import com.example.kendo.requestDto.UpdateTeamTemplateRequestDto;
 import com.example.kendo.responseDto.DeleteTeamTemplateResponseDto;
@@ -10,4 +13,5 @@ public interface TeamTemplateService {
 	RegisterTeamTemplateResponseDto registerTeamTemplate(RegisterTeamTemplateRequestDto requestDto, Long userId);
 	UpdateTeamTemplateResponseDto updateTeamTemplate(Long templateId, UpdateTeamTemplateRequestDto request, Long userId);
 	DeleteTeamTemplateResponseDto deleteTeamTemplate(Long templateId, Long userId);
+	List<TeamTemplateListDto> getTeamTemplateList();
 }

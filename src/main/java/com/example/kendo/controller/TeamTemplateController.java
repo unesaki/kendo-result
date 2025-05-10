@@ -2,6 +2,8 @@ package com.example.kendo.controller;
 
 
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.kendo.dto.TeamTemplateListDto;
 import com.example.kendo.requestDto.RegisterTeamTemplateRequestDto;
 import com.example.kendo.requestDto.UpdateTeamTemplateRequestDto;
 import com.example.kendo.responseDto.DeleteTeamTemplateResponseDto;
@@ -61,6 +65,12 @@ public class TeamTemplateController {
             teamTemplateService.deleteTeamTemplate(templateId, user.getId());
 
         return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/team-templates")
+    public ResponseEntity<List<TeamTemplateListDto>> getTeamTemplateList() {
+        List<TeamTemplateListDto> list = teamTemplateService.getTeamTemplateList();
+        return ResponseEntity.ok(list);
     }
 
 }

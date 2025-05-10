@@ -35,5 +35,13 @@
   <delete id="deleteTeamTemplate" parameterType="long">
     DELETE FROM team_templates WHERE id = #{templateId}
   </delete>
+  
+  <select id="selectTeamTemplateList" resultType="com.example.kendo.dto.TeamTemplateListDto">
+    SELECT
+      id AS templateId,
+      team_name AS teamName
+    FROM team_templates
+    ORDER BY id DESC
+  </select>
 
 </mapper>

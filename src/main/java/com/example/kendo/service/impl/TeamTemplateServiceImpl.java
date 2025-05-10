@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.example.kendo.dto.TeamTemplateListDto;
 import com.example.kendo.entity.TeamTemplateEntity;
 import com.example.kendo.entity.TeamTemplatePlayerEntity;
 import com.example.kendo.exception.BusinessException;
@@ -82,5 +83,10 @@ public class TeamTemplateServiceImpl implements TeamTemplateService{
         teamTemplateRepository.deleteTeamTemplate(templateId);
 
         return new DeleteTeamTemplateResponseDto(templateId, userId, "テンプレートを削除しました。");
+    }
+    
+    @Override
+    public List<TeamTemplateListDto> getTeamTemplateList() {
+        return teamTemplateRepository.selectTeamTemplateList();
     }
 }
