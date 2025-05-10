@@ -24,6 +24,7 @@ import com.example.kendo.requestDto.RegisterTeamTemplateRequestDto;
 import com.example.kendo.requestDto.UpdateTeamTemplateRequestDto;
 import com.example.kendo.responseDto.DeleteTeamTemplateResponseDto;
 import com.example.kendo.responseDto.RegisterTeamTemplateResponseDto;
+import com.example.kendo.responseDto.TeamTemplateDetailResponseDto;
 import com.example.kendo.responseDto.UpdateTeamTemplateResponseDto;
 import com.example.kendo.security.UserPrincipal;
 import com.example.kendo.service.TeamTemplateService;
@@ -71,6 +72,12 @@ public class TeamTemplateController {
     public ResponseEntity<List<TeamTemplateListDto>> getTeamTemplateList() {
         List<TeamTemplateListDto> list = teamTemplateService.getTeamTemplateList();
         return ResponseEntity.ok(list);
+    }
+    
+    @GetMapping("/team-templates/{templateId}")
+    public ResponseEntity<TeamTemplateDetailResponseDto> getTeamTemplateDetail(@PathVariable Long templateId) {
+        TeamTemplateDetailResponseDto response = teamTemplateService.getTeamTemplateDetail(templateId);
+        return ResponseEntity.ok(response);
     }
 
 }

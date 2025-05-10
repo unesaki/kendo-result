@@ -19,4 +19,6 @@ public interface TeamTemplateRepository {
     void deleteTeamTemplatePlayers(@Param("templateId") Long templateId);
     void deleteTeamTemplate(@Param("templateId") Long templateId);
     List<TeamTemplateListDto> selectTeamTemplateList();
+    TeamTemplateEntity selectTeamTemplateById(Long templateId);
+    List<TeamTemplatePlayerEntity> selectPlayersByTemplateId(Long templateId);
 }

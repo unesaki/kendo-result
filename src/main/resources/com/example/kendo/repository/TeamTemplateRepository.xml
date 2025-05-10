@@ -43,5 +43,20 @@
     FROM team_templates
     ORDER BY id DESC
   </select>
+  
+  <select id="selectTeamTemplateById" parameterType="long" resultType="com.example.kendo.entity.TeamTemplateEntity">
+  SELECT id AS id, team_name AS teamName
+  FROM team_templates
+  WHERE id = #{templateId}
+</select>
+
+
+  <select id="selectPlayersByTemplateId" parameterType="long" resultType="com.example.kendo.entity.TeamTemplatePlayerEntity">
+  SELECT position AS position, player_name AS playerName
+  FROM team_template_players
+  WHERE template_id = #{templateId}
+  ORDER BY FIELD(position, '先鋒', '次鋒', '中堅', '副将', '大将')
+</select>
+
 
 </mapper>

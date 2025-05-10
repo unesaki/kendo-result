@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.kendo.dto.TeamTemplateListDto;
+import com.example.kendo.dto.TeamTemplateMemberDto;
 import com.example.kendo.entity.TeamTemplateEntity;
 import com.example.kendo.entity.TeamTemplatePlayerEntity;
 import com.example.kendo.exception.BusinessException;
@@ -15,6 +16,7 @@ import com.example.kendo.requestDto.RegisterTeamTemplateRequestDto;
 import com.example.kendo.requestDto.UpdateTeamTemplateRequestDto;
 import com.example.kendo.responseDto.DeleteTeamTemplateResponseDto;
 import com.example.kendo.responseDto.RegisterTeamTemplateResponseDto;
+import com.example.kendo.responseDto.TeamTemplateDetailResponseDto;
 import com.example.kendo.responseDto.UpdateTeamTemplateResponseDto;
 import com.example.kendo.service.TeamTemplateService;
 
@@ -88,5 +90,27 @@ public class TeamTemplateServiceImpl implements TeamTemplateService{
     @Override
     public List<TeamTemplateListDto> getTeamTemplateList() {
         return teamTemplateRepository.selectTeamTemplateList();
+    }
+    
+    @Override
+    public TeamTemplateDetailResponseDto getTeamTemplateDetail(Long templateId) {
+        TeamTemplateEntity template = teamTemplateRepository.selectTeamTemplateById(templateId);
+        if (template == null) {
+            throw new BusinessException("E_DB_MSG_0001", "templateId");
+        }
+
+        List<TeamTemplatePlayerEntity> playerEntities = teamTemplateRepository.selectPlayersByTemplateId(templateId);
+        List<TeamTemplateMemberDto> members = playerEntities.stream().map(entity -> {
+            TeamTemplateMemberDto dto = new TeamTemplateMemberDto();
+            dto.setPosition(entity.getPosition());
+            dto.setPlayerName(entity.getPlayerName());
+            return dto;
+        }).collect(Collectors.toList());
+
+        TeamTemplateDetailResponseDto response = new TeamTemplateDetailResponseDto();
+        response.setTemplateId(template.getId());
+        response.setTeamName(template.getTeamName());
+        response.setMembers(members);
+        return response;
     }
 }
