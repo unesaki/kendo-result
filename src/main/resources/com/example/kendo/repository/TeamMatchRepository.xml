@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.kendo.repository.TeamMatchRepository">
+
+<insert id="insertTeamMatch" parameterType="com.example.kendo.entity.TeamMatchEntity">
+  INSERT INTO team_matches (
+    tournament_id,
+    red_team_id,
+    white_team_id,
+    red_team_name,
+    white_team_name,
+    red_team_score,
+    white_team_score,
+    match_order,
+    match_date,
+    created_at
+  )
+  VALUES (
+    #{tournamentId},
+    #{redTeamId},
+    #{whiteTeamId},
+    #{redTeamName},
+    #{whiteTeamName},
+    #{redTeamScore},
+    #{whiteTeamScore},
+    #{matchOrder},
+    #{matchDate},
+    #{createdAt}
+  )
+</insert>
+
+
+
+
+<insert id="insertTeamMatchDetails" parameterType="com.example.kendo.entity.TeamMatchDetailEntity">
+    INSERT INTO team_match_details (
+        team_match_id, red_player_name, white_player_name, red_points, white_points, red_win_default, white_win_default, draw, position
+    ) VALUES (
+        #{teamMatchId}, #{redPlayerName}, #{whitePlayerName}, #{redPoints}, #{whitePoints}, #{redWinDefault}, #{whiteWinDefault}, #{draw}, #{position}
+    )
+</insert>
+
+  
+</mapper>
